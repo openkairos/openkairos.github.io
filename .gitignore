@@ -4,3 +4,4 @@ build/
 .docusaurus/
 .cache-loader/
 npm-debug.log*
+static/openapi/

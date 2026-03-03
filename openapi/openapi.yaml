@@ -1,0 +1,20 @@
+openapi: 3.0.3
+info:
+  title: Kairos API
+  version: 1.0.0
+  description: Kairos API Specifications.
+servers:
+  - url: https://api.kairos.example
+paths:
+  /:
+    get:
+      summary: Health check endpoint
+      operationId: getHealthCheck
+      responses:
+        "200":
+          description: Successful response
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Kairos: The right moment for customer data."
