@@ -57,6 +57,11 @@ const config = {
           label: 'Documentation',
         },
         {
+          to: '/api-docs',
+          position: 'right',
+          label: 'API Reference',
+        },
+        {
           label: `Version: ${versionSlug}`,
           position: 'right',
           items: versionItems,
