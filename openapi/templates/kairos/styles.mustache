@@ -261,6 +261,7 @@ pre code.sample-request-response-json {
   bottom: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background-color: #f5f5f5;
   z-index: 10;
 }
@@ -294,12 +295,15 @@ pre code.sample-request-response-json {
   color: #fff;
 }
 
-
-00427D
-
 .sidenav > .active > a {
   position: relative;
   z-index: 2;
+}
+
+.sidenav > li > a.active {
+  position: relative;
+  z-index: 2;
+  background-color: #ffffff;
 }
 
 .sidenav > li > a:hover {

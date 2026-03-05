@@ -29,41 +29,66 @@
         });
       }
 
-      // Bootstrap Scrollspy
-      $(this).scrollspy({ target: '#scrollingNav', offset: 18 });
+      function initScrollSpy() {
+        if (!window.bootstrap || !window.bootstrap.ScrollSpy) {
+          return;
+        }
+        const existing = window.bootstrap.ScrollSpy.getInstance(document.body);
+        if (existing) {
+          existing.dispose();
+        }
+        new window.bootstrap.ScrollSpy(document.body, {
+          target: '#scrollingNav',
+          offset: 18,
+        });
+      }
+
+      function initDynamicTabs(scope) {
+        if (!window.bootstrap || !window.bootstrap.Tab) {
+          return;
+        }
+        const root = scope || document;
+        $(root).find('.nav-tabs-examples').each(function() {
+          const firstTab = $(this).find('a[data-bs-toggle="tab"]').get(0);
+          if (firstTab) {
+            window.bootstrap.Tab.getOrCreateInstance(firstTab).show();
+          }
+        });
+
+        $(root)
+          .find('.nav-tabs-examples a[data-bs-toggle="tab"]')
+          .off('click.kairos')
+          .on('click.kairos', function (e) {
+            e.preventDefault();
+            window.bootstrap.Tab.getOrCreateInstance(this).show();
+          });
+      }
+
+      window.initDynamicTabs = initDynamicTabs;
 
       // Content-Scroll on Navigation click.
       $('.sidenav').find('a').on('click', function(e) {
           e.preventDefault();
           const id = $(this).attr('href');
-          if ($(id).length > 0)
-              $('html,body').animate({ scrollTop: parseInt($(id).offset().top) }, 400);
-          window.location.hash = $(this).attr('href');
+          if ($(id).length > 0) {
+              $('html,body').stop(true).animate({ scrollTop: Math.round($(id).offset().top) }, 400);
+          }
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', id);
+          } else {
+            window.location.hash = id;
+          }
       });
 
       // Quickjump on Pageload to hash position.
       if(window.location.hash) {
           const id = window.location.hash;
-          if ($(id).length > 0)
-              $('html,body').animate({ scrollTop: parseInt($(id).offset().top) }, 0);
+          if ($(id).length > 0) {
+              $('html,body').stop(true).animate({ scrollTop: Math.round($(id).offset().top) }, 0);
+          }
       }
-
-
-      function initDynamic() {
-        // tabs
-        $('.nav-tabs-examples a').click(function (e) {
-            e.preventDefault();
-            $(this).tab('show');
-        });
-
-
-        $('.nav-tabs-examples').find('a:first').tab('show');
-
-        // call scrollspy refresh method
-        $(window).scrollspy('refresh');
-      }
-
-      initDynamic();
+      initDynamicTabs();
+      initScrollSpy();
 
       // Pre- / Code-Format
       prettyPrint();
@@ -137,10 +162,10 @@
   </script>
 
   <div class="container-fluid">
-    <div class="row-fluid">
-      <div id="sidenav" class="span2">
+    <div class="row">
+      <div id="sidenav">
         <nav id="scrollingNav">
-          <ul class="sidenav nav nav-list">
+          <ul class="sidenav nav flex-column">
             <!-- Logo Area -->
               <!--<div style="width: 80%; background-color: #4c8eca; color: white; padding: 20px; text-align: center; margin-bottom: 20px; ">
 
@@ -148,15 +173,15 @@
 
               </div>
             -->
-            <li class="nav-fixed nav-header active" data-group="_"><a href="#api-_">API Summary</a></li>
+            <li class="nav-fixed nav-header active" data-group="_"><a class="nav-link" href="#api-_">API Summary</a></li>
 
             {{#apiInfo}}
               {{#apis}}
                 {{#operations}}
-                  <li class="nav-header" data-group="{{baseName}}"><a href="#api-{{baseName}}">API Methods - {{baseName}}</a></li>
+                  <li class="nav-header" data-group="{{baseName}}"><a class="nav-link" href="#api-{{baseName}}">API Methods - {{baseName}}</a></li>
                   {{#operation}}
                     <li data-group="{{baseName}}" data-name="{{nickname}}" class="">
-                      <a href="#api-{{baseName}}-{{nickname}}">{{nickname}}</a>
+                      <a class="nav-link" href="#api-{{baseName}}-{{nickname}}">{{nickname}}</a>
                     </li>
                   {{/operation}}
                 {{/operations}}
@@ -167,7 +192,7 @@
       </div>
       <div id="content">
         <div id="project">
-          <div class="pull-left">
+          <div class="float-start">
             <h1>{{{appName}}}</h1>
           </div>
           <div class="clearfix"></div>
@@ -192,11 +217,11 @@
                   {{#operation}}
                     <div id="api-{{baseName}}-{{nickname}}">
                       <article id="api-{{baseName}}-{{nickname}}-0" data-group="User" data-name="{{nickname}}" data-version="0">
-                        <div class="pull-left">
+                        <div class="float-start">
                           <h1>{{nickname}}</h1>
                           <p>{{summary}}</p>
                         </div>
-                        <div class="pull-right"></div>
+                        <div class="float-end"></div>
                         <div class="clearfix"></div>
                         <p></p>
                         <p class="marked">{{notes}}</p>
@@ -206,69 +231,69 @@
                         <p>
                           <h3>Usage and SDK Samples</h3>
                         </p>
-                        <ul class="nav nav-tabs nav-tabs-examples">
-                          <li class="active"><a href="#examples-{{baseName}}-{{nickname}}-0-curl">Curl</a></li>
-                          <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-java">Java</a></li>
-                          <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-dart">Dart</a></li>
-                          <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-android">Android</a></li>
-                          <!--<li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-groovy">Groovy</a></li>-->
-                          <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-objc">Obj-C</a></li>
-                          <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-javascript">JavaScript</a></li>
-                          <!--<li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-angular">Angular</a></li>-->
-                          <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-csharp">C#</a></li>
-                          <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-php">PHP</a></li>
-                          <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-perl">Perl</a></li>
-                          <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-python">Python</a></li>
-                          <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-rust">Rust</a></li>
+                        <ul class="nav nav-tabs nav-tabs-examples" role="tablist">
+                          <li class="nav-item" role="presentation"><a class="nav-link active" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-curl" role="tab" aria-selected="true">Curl</a></li>
+                          <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-java" role="tab">Java</a></li>
+                          <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-dart" role="tab">Dart</a></li>
+                          <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-android" role="tab">Android</a></li>
+                          <!--<li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-groovy" role="tab">Groovy</a></li>-->
+                          <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-objc" role="tab">Obj-C</a></li>
+                          <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-javascript" role="tab">JavaScript</a></li>
+                          <!--<li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-angular" role="tab">Angular</a></li>-->
+                          <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-csharp" role="tab">C#</a></li>
+                          <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-php" role="tab">PHP</a></li>
+                          <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-perl" role="tab">Perl</a></li>
+                          <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-python" role="tab">Python</a></li>
+                          <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="#examples-{{baseName}}-{{nickname}}-0-rust" role="tab">Rust</a></li>
                         </ul>
 
                         <div class="tab-content">
-                          <div class="tab-pane active" id="examples-{{baseName}}-{{nickname}}-0-curl">
+                          <div class="tab-pane show active" id="examples-{{baseName}}-{{nickname}}-0-curl" role="tabpanel">
                             <pre class="prettyprint"><code class="language-bsh">{{>sample_curl}}</code></pre>
                           </div>
-                          <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-java">
+                          <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-java" role="tabpanel">
                             <pre class="prettyprint"><code class="language-java">{{>sample_java}}</code></pre>
                           </div>
 
-                          <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-dart">
+                          <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-dart" role="tabpanel">
                             <pre class="prettyprint"><code class="language-dart">{{>sample_dart}}</code></pre>
                           </div>
 
-                          <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-android">
+                          <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-android" role="tabpanel">
                             <pre class="prettyprint"><code class="language-java">{{>sample_android}}</code></pre>
                           </div>
   <!--
   <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-groovy">
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
-                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-objc">
+                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-objc" role="tabpanel">
                               <pre class="prettyprint"><code class="language-cpp">{{>sample_objc}}</code></pre>
                             </div>
 
-                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-javascript">
+                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-javascript" role="tabpanel">
                               <pre class="prettyprint"><code class="language-js">{{>sample_js}}</code></pre>
                             </div>
 
                             <!--<div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-angular">
               <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
             </div>-->
-                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-csharp">
+                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-csharp" role="tabpanel">
                               <pre class="prettyprint"><code class="language-cs">{{>sample_csharp}}</code></pre>
                             </div>
 
-                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-php">
+                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-php" role="tabpanel">
                               <pre class="prettyprint"><code class="language-php">{{>sample_php}}</code></pre>
                             </div>
 
-                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-perl">
+                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-perl" role="tabpanel">
                               <pre class="prettyprint"><code class="language-perl">{{>sample_perl}}</code></pre>
                             </div>
 
-                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-python">
+                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-python" role="tabpanel">
                               <pre class="prettyprint"><code class="language-python">{{>sample_python}}</code></pre>
                             </div>
 
-                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-rust">
+                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-rust" role="tabpanel">
                               <pre class="prettyprint"><code class="language-rust">{{>sample_rust}}</code></pre>
                             </div>
                           </div>
@@ -366,23 +391,23 @@
                             </script>
 
 
-                            <ul id="responses-detail-{{baseName}}-{{nickname}}-{{code}}" class="nav nav-tabs nav-tabs-examples" >
+                            <ul id="responses-detail-{{baseName}}-{{nickname}}-{{code}}" class="nav nav-tabs nav-tabs-examples" role="tablist">
                               {{#schema}}
-                                <li class="active">
-                                  <a data-toggle="tab" href="#responses-{{baseName}}-{{nickname}}-{{code}}-schema">Schema</a>
+                                <li class="nav-item" role="presentation">
+                                  <a class="nav-link active" data-bs-toggle="tab" href="#responses-{{baseName}}-{{nickname}}-{{code}}-schema" role="tab" aria-selected="true">Schema</a>
                                 </li>
 
                                 {{#examples}}
-                                  <li class="">
-                                    <a data-toggle="tab" href="#responses-{{baseName}}-{{nickname}}-{{code}}-example">Response Example</a>
+                                  <li class="nav-item" role="presentation">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#responses-{{baseName}}-{{nickname}}-{{code}}-example" role="tab">Response Example</a>
                                   </li>
                                 {{/examples}}
 
                               {{/schema}}
 
                               {{#hasHeaders}}
-                                <li class="">
-                                  <a data-toggle="tab" href="#responses-{{nickname}}-{{code}}-headers">Headers</a>
+                                <li class="nav-item" role="presentation">
+                                  <a class="nav-link" data-bs-toggle="tab" href="#responses-{{nickname}}-{{code}}-headers" role="tab">Headers</a>
                                 </li>
                               {{/hasHeaders}}
 
@@ -397,9 +422,9 @@
                                       var tabID = 'responses-detail-{{baseName}}-{{nickname}}-{{code}}-' + errorID;
                                       var contentID = tabID + "-content";
 
-                                      $('#responses-detail-{{baseName}}-{{nickname}}-{{code}}').append("<li><a href='#" + tabID + "' data-toggle='tab'>" + errorID + "</a></li>");
+                                      $('#responses-detail-{{baseName}}-{{nickname}}-{{code}}').append("<li class='nav-item' role='presentation'><a class='nav-link' href='#" + tabID + "' data-bs-toggle='tab' role='tab'>" + errorID + "</a></li>");
                                       var contentWrapper = $('#responses-{{baseName}}-{{nickname}}-{{code}}-wrapper');
-                                      contentWrapper.append('<div class="tab-pane" id="' + tabID + '"><div id="' + contentID + '" class="exampleStyle"></div></div>');
+                                      contentWrapper.append('<div class="tab-pane" id="' + tabID + '" role="tabpanel"><div id="' + contentID + '" class="exampleStyle"></div></div>');
                                       var contentPane = $('#' + contentID);
 
                                       contentPane.append('<p>' + errorDef.message + '</p>');
@@ -412,6 +437,9 @@
                                           $("<li></li>").appendTo(lVars).text(errorDef.variables[lii]);
                                         }
                                       }
+                                      if (window.initDynamicTabs) {
+                                        window.initDynamicTabs(document);
+                                      }
                                     });
                                   </script>
                                 {{/x-shared-errors}}
@@ -420,7 +448,7 @@
 
 
                             <div class="tab-content" id="responses-{{baseName}}-{{nickname}}-{{code}}-wrapper" style='margin-bottom: 10px;'>
-                              <div class="tab-pane active" id="responses-{{baseName}}-{{nickname}}-{{code}}-schema">
+                              <div class="tab-pane show active" id="responses-{{baseName}}-{{nickname}}-{{code}}-schema" role="tabpanel">
                                 <div id="responses-{{baseName}}-{{nickname}}-schema-{{code}}" class="exampleStyle">
                                   <script>
                                     $(document).ready(function() {
@@ -461,12 +489,12 @@
                                 <input id='responses-{{baseName}}-{{nickname}}-{{code}}-schema-data' type='hidden' value=''></input>
                               </div>
                               {{#examples}}
-                                <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-{{code}}-example">
+                                <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-{{code}}-example" role="tabpanel">
                                   <pre class="prettyprint"><code class="json">{{example}}</code></pre>
                                 </div>
                               {{/examples}}
                               {{#hasHeaders}}
-                                  <div class="tab-pane" id="responses-{{nickname}}-{{code}}-headers">
+                                  <div class="tab-pane" id="responses-{{nickname}}-{{code}}-headers" role="tabpanel">
                                       <table>
                                           <tr>
                                               <th width="150px">Name</th>
@@ -515,12 +543,6 @@
     defsParser.dereference(schemaWrapper).catch(function(err) {
       console.log(err);
     });
-  </script>
-  <script>
-  $(document).ready(function () {
-    $('.nav-tabs-examples').find('a:first').tab('show');
-    $(this).scrollspy({ target: '#scrollingNav', offset: 18 });
-  });
   </script>
 </body>
 </html>
