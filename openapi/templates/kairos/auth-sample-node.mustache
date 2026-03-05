@@ -1,0 +1,7 @@
+{{#isBasicBearer}}const res = await fetch('https://api.kairos.example/', {
+  headers: { Authorization: 'Bearer YOUR_ACCESS_TOKEN' }
+});{{/isBasicBearer}}{{#isBasicBasic}}const res = await fetch('https://api.kairos.example/', {
+  headers: { Authorization: 'Basic BASE64(username:password)' }
+});{{/isBasicBasic}}{{#isApiKey}}const res = await fetch('https://api.kairos.example/', {
+  headers: { '{{keyParamName}}': 'ApiKey YOUR_API_KEY' }
+});{{/isApiKey}}

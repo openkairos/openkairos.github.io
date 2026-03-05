@@ -1,0 +1,22 @@
+{{#isBasicBearer}}import java.net.URI;
+import java.net.http.HttpRequest;
+
+HttpRequest request = HttpRequest.newBuilder()
+  .uri(URI.create("https://api.kairos.example/"))
+  .header("Authorization", "Bearer YOUR_ACCESS_TOKEN")
+  .GET()
+  .build();{{/isBasicBearer}}{{#isBasicBasic}}import java.net.URI;
+import java.net.http.HttpRequest;
+
+HttpRequest request = HttpRequest.newBuilder()
+  .uri(URI.create("https://api.kairos.example/"))
+  .header("Authorization", "Basic BASE64(username:password)")
+  .GET()
+  .build();{{/isBasicBasic}}{{#isApiKey}}import java.net.URI;
+import java.net.http.HttpRequest;
+
+HttpRequest request = HttpRequest.newBuilder()
+  .uri(URI.create("https://api.kairos.example/"))
+  .header("{{keyParamName}}", "ApiKey YOUR_API_KEY")
+  .GET()
+  .build();{{/isApiKey}}

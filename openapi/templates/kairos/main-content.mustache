@@ -1,0 +1,71 @@
+<main class="content" data-render-model-url="render-model.json">
+  <section>
+    <div class="doc-overview__topbar">
+      <p class="eyebrow">API Reference</p>
+      <div class="doc-actions doc-actions--top">
+        <a class="doc-action-btn" data-download-spec hidden>Download OpenAPI YAML</a>
+      </div>
+    </div>
+    <h1 class="anchor" id="overview" data-overview-title>{{{appName}}}<a href="#overview" class="hash-link" aria-label="Direct link to Overview" title="Direct link to Overview" translate="no">​</a></h1>
+    <p class="lead" data-overview-description>
+      {{{appDescription}}}
+    </p>
+
+    <div class="doc-meta" data-overview-meta>
+      {{#version}}
+      <span class="doc-meta__item" data-overview-version>
+        <span class="doc-meta__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="14" height="14" focusable="false">
+            <path fill="currentColor" d="M5 5h14v2H5zm0 6h8v2H5zm0 6h14v2H5z"></path>
+          </svg>
+        </span>
+        <span><strong>Version:</strong> {{{.}}}</span>
+      </span>
+      {{/version}}
+      {{#licenseInfo}}
+      <span class="doc-meta__item" data-overview-license>
+        <span class="doc-meta__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="14" height="14" focusable="false">
+            <path fill="currentColor" d="M12 2l8 4v6c0 5-3.4 9.5-8 10-4.6-.5-8-5-8-10V6zm0 2.2L6 7v5c0 3.8 2.4 7.4 6 8.4 3.6-1 6-4.6 6-8.4V7z"></path>
+          </svg>
+        </span>
+        <span>
+          <strong>License:</strong>
+          {{#licenseUrl}}<a href="{{{.}}}" class="doc-meta__link" target="_blank" rel="noopener noreferrer">{{{licenseInfo}}}</a>{{/licenseUrl}}
+          {{^licenseUrl}}{{{licenseInfo}}}{{/licenseUrl}}
+        </span>
+      </span>
+      {{/licenseInfo}}
+      <span data-overview-terms></span>
+      <span data-overview-contact></span>
+      <span data-overview-external-docs></span>
+    </div>
+
+  </section>
+
+  <section data-server-manager hidden>
+    <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="servers">Servers<a href="#servers" class="hash-link" aria-label="Direct link to Servers" title="Direct link to Servers" translate="no">​</a></h2>
+    <div data-server-manager-content></div>
+  </section>
+
+  <section data-authentication-section hidden>
+    <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="authentication">Authentication<a href="#authentication" class="hash-link" aria-label="Direct link to Authentication" title="Direct link to Authentication" translate="no">​</a></h2>
+    <div data-authentication-controls></div>
+    <div class="auth-list" data-authentication-list></div>
+  </section>
+
+  <section data-operations-section hidden>
+    <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="operations">Operations<a href="#operations" class="hash-link" aria-label="Direct link to Operations" title="Direct link to Operations" translate="no">​</a></h2>
+    <div class="operations-stack" data-operations-grid></div>
+  </section>
+
+  <section data-webhooks-section hidden>
+    <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="webhooks">Webhooks<a href="#webhooks" class="hash-link" aria-label="Direct link to Webhooks" title="Direct link to Webhooks" translate="no">​</a></h2>
+    <div class="webhooks-stack" data-webhooks-grid></div>
+  </section>
+
+  <section data-components-section hidden>
+    <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="components">Components<a href="#components" class="hash-link" aria-label="Direct link to Components" title="Direct link to Components" translate="no">​</a></h2>
+    <div class="components-stack" data-components-grid></div>
+  </section>
+</main>

@@ -58,6 +58,8 @@ The watcher regenerates `static/openapi` whenever you edit:
 - `openapi/openapi.yaml`
 - `openapi/templates/kairos/**/*.mustache`
 
+The generated API docs now use `openapi/templates/kairos` as the canonical custom template directory.
+
 So changes to API templates are reflected at `/api-docs` without manually re-running generation.
 
 Build static files:

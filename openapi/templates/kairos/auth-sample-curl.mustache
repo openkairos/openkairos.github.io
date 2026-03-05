@@ -1,0 +1,7 @@
+{{#isBasicBearer}}curl --request GET \
+  --url https://api.kairos.example/ \
+  --header 'Authorization: Bearer YOUR_ACCESS_TOKEN'{{/isBasicBearer}}{{#isBasicBasic}}curl --request GET \
+  --url https://api.kairos.example/ \
+  --header 'Authorization: Basic BASE64(username:password)'{{/isBasicBasic}}{{#isApiKey}}curl --request GET \
+  --url https://api.kairos.example/ \
+  --header '{{keyParamName}}: ApiKey YOUR_API_KEY'{{/isApiKey}}
