@@ -42,6 +42,24 @@ Run the docs locally:
 npm run start
 ```
 
+Run docs with API template hot reload:
+
+```bash
+npm run dev
+```
+
+This runs:
+
+- Docusaurus dev server (`npm run start`)
+- OpenAPI generator watcher (`npm run watch:api`)
+
+The watcher regenerates `static/openapi` whenever you edit:
+
+- `openapi/openapi.yaml`
+- `openapi/templates/kairos/**/*.mustache`
+
+So changes to API templates are reflected at `/api-docs` without manually re-running generation.
+
 Build static files:
 
 ```bash
