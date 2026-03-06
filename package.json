@@ -23,7 +23,7 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@openapitools/openapi-generator-cli": "^2.30.0",
+    "@openapitools/openapi-generator-cli": "^2.30.2",
     "chokidar-cli": "^3.0.0",
     "concurrently": "^9.2.1",
     "markdownlint-cli": "^0.45.0"
