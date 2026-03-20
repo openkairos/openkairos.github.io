@@ -1,0 +1,3328 @@
+<script>
+  (function () {
+    const body = document.body;
+    const menuToggle = document.getElementById('menu-toggle');
+    const scrollToTopButton = document.getElementById('scroll-to-top');
+    const sidebar = document.getElementById('sidebar-nav');
+    const overlay = document.getElementById('mobile-overlay');
+    let navLinks = [];
+    let headings = [];
+    let linkByHash = {};
+    let collapsibleTriggers = [];
+    let variantGroups = [];
+    let tabGroups = Array.from(document.querySelectorAll('[data-code-tabs]'));
+    let languageTabGroups = tabGroups.filter(function (group) {
+      return group.getAttribute('data-code-sync') === 'language';
+    });
+    const mainContent = document.querySelector('main.content');
+    const renderModelUrl = mainContent ? mainContent.getAttribute('data-render-model-url') : null;
+    let copyButtons = Array.from(document.querySelectorAll('[data-copy-example]'));
+    const markdownLinkDescriptions = Array.from(document.querySelectorAll('[data-render-md-links]'));
+    const overviewTitle = document.querySelector('[data-overview-title]');
+    const overviewDescription = document.querySelector('[data-overview-description]');
+    const overviewVersion = document.querySelector('[data-overview-version]');
+    const overviewLicense = document.querySelector('[data-overview-license]');
+    const overviewTerms = document.querySelector('[data-overview-terms]');
+    const overviewContact = document.querySelector('[data-overview-contact]');
+    const overviewExternalDocs = document.querySelector('[data-overview-external-docs]');
+    const overviewDownload = document.querySelector('[data-download-spec]');
+    const serverNavItem = document.querySelector('[data-server-nav-item]');
+    const authenticationSection = document.querySelector('[data-authentication-section]');
+    const authenticationControls = document.querySelector('[data-authentication-controls]');
+    const authenticationList = document.querySelector('[data-authentication-list]');
+    const authenticationNavItem = document.querySelector('[data-authentication-nav-item]');
+    const operationsNavItem = document.querySelector('[data-operations-nav-item]');
+    const operationsNavGroup = document.querySelector('[data-operations-nav-group]');
+    const operationsNavList = document.querySelector('[data-operations-nav-list]');
+    const webhooksNavItem = document.querySelector('[data-webhooks-nav-item]');
+    const webhooksNavGroup = document.querySelector('[data-webhooks-nav-group]');
+    const webhooksNavList = document.querySelector('[data-webhooks-nav-list]');
+    const componentsNavItem = document.querySelector('[data-components-nav-item]');
+    const componentsNavGroup = document.querySelector('[data-components-nav-group]');
+    const componentsNavList = document.querySelector('[data-components-nav-list]');
+    const operationsSection = document.querySelector('[data-operations-section]');
+    const operationsGrid = document.querySelector('[data-operations-grid]');
+    const webhooksSection = document.querySelector('[data-webhooks-section]');
+    const webhooksGrid = document.querySelector('[data-webhooks-grid]');
+    const componentsSection = document.querySelector('[data-components-section]');
+    const componentsGrid = document.querySelector('[data-components-grid]');
+    let serverManager = document.querySelector('[data-server-manager]');
+    let serverManagerContent = serverManager ? serverManager.querySelector('[data-server-manager-content]') : null;
+    let serverSelect = serverManager ? serverManager.querySelector('[data-server-select]') : null;
+    let serverCards = serverManager ? Array.from(serverManager.querySelectorAll('[data-server-option]')) : [];
+    let serverSummary = serverManager ? serverManager.querySelector('[data-server-summary]') : null;
+    const languageStorageKey = 'kairos.docs.language';
+    const serverStorageKey = 'kairos.docs.server';
+    const defaultLanguage = 'curl';
+    const supportedExampleLanguages = ['curl', 'python', 'javascript', 'ruby', 'php', 'java'];
+
+    let activeHash = null;
+    let scrollTicking = false;
+    let activeAuthSchemeId = null;
+    let currentRenderModel = null;
+    let authState = {};
+    let knownServerBases = [
+      'https://api.kairos.dev',
+      'https://api.kairos.example',
+      'http://api.kairos.example'
+    ];
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function createMetaItem(iconPath, label, contentHtml) {
+      return '<span class="doc-meta__icon" aria-hidden="true">' +
+        '<svg viewBox="0 0 24 24" width="14" height="14" focusable="false">' +
+        '<path fill="currentColor" d="' + iconPath + '"></path>' +
+        '</svg>' +
+        '</span>' +
+        '<span><strong>' + escapeHtml(label) + ':</strong> ' + contentHtml + '</span>';
+    }
+
+    function setMetaItemContent(container, iconPath, label, contentHtml) {
+      if (!container || !contentHtml) {
+        return;
+      }
+
+      container.className = 'doc-meta__item';
+      container.innerHTML = createMetaItem(iconPath, label, contentHtml);
+    }
+
+    function slugify(value) {
+      return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    }
+
+    function getOperationAnchorId(operation, prefix) {
+      const base = operation.summary || [operation.method, operation.path].filter(Boolean).join(' ') || operation.id;
+      return (prefix || 'operation') + '-' + slugify(base);
+    }
+
+    function getComponentAnchorId(item, kind) {
+      return 'component-' + slugify(kind + ' ' + (item.name || item.id));
+    }
+
+    function normalizeHash(hash) {
+      if (!hash) {
+        return '';
+      }
+      return hash.charAt(0) === '#' ? hash : ('#' + hash);
+    }
+
+    function getHeadingByHash(hash) {
+      const normalizedHash = normalizeHash(hash);
+      if (!normalizedHash) {
+        return null;
+      }
+      return document.getElementById(normalizedHash.slice(1));
+    }
+
+    function updateDocumentHash(hash, options) {
+      const normalizedHash = normalizeHash(hash);
+      const currentHash = normalizeHash(window.location.hash);
+      const opts = options || {};
+      const nextUrl = normalizedHash
+        ? window.location.pathname + window.location.search + normalizedHash
+        : window.location.pathname + window.location.search;
+
+      if (normalizedHash === currentHash) {
+        return;
+      }
+
+      if (opts.replace) {
+        window.history.replaceState(null, '', nextUrl);
+        return;
+      }
+
+      window.location.hash = normalizedHash;
+    }
+
+    function scrollToHash(hash) {
+      const target = getHeadingByHash(hash);
+      if (!target) {
+        return false;
+      }
+      target.scrollIntoView({block: 'start'});
+      return true;
+    }
+
+    function navigateToHash(hash, options) {
+      const normalizedHash = normalizeHash(hash);
+      const opts = options || {};
+      if (!normalizedHash) {
+        return false;
+      }
+
+      if (!getHeadingByHash(normalizedHash) && !linkByHash[normalizedHash]) {
+        return false;
+      }
+
+      setActiveLinkByHash(normalizedHash, {
+        force: true,
+        skipSidebarScroll: !!opts.skipSidebarScroll
+      });
+
+      if (!opts.skipDocumentHash) {
+        updateDocumentHash(normalizedHash, {replace: !!opts.replaceHistory});
+      }
+
+      if (!opts.skipScroll) {
+        scrollToHash(normalizedHash);
+      }
+
+      return true;
+    }
+
+    function getSectionHash(hash) {
+      const normalizedHash = normalizeHash(hash);
+      if (!normalizedHash) {
+        return '';
+      }
+      if (
+        normalizedHash === '#overview' ||
+        normalizedHash === '#servers' ||
+        normalizedHash === '#authentication' ||
+        normalizedHash === '#operations' ||
+        normalizedHash === '#webhooks' ||
+        normalizedHash === '#components'
+      ) {
+        return normalizedHash;
+      }
+      if (normalizedHash.indexOf('#operations-tag-') === 0 || normalizedHash.indexOf('#operation-') === 0) {
+        return '#operations';
+      }
+      if (normalizedHash.indexOf('#webhook-group-') === 0 || normalizedHash.indexOf('#webhook-') === 0) {
+        return '#webhooks';
+      }
+      if (normalizedHash.indexOf('#components-') === 0 || normalizedHash.indexOf('#component-') === 0) {
+        return '#components';
+      }
+      return '';
+    }
+
+    function refreshNavigationCollections() {
+      navLinks = Array.from(document.querySelectorAll('.menu__link[href^="#"]'));
+      headings = Array.from(document.querySelectorAll('main .anchor[id]'));
+      linkByHash = navLinks.reduce(function (acc, link) {
+        acc[link.getAttribute('href')] = link;
+        return acc;
+      }, {});
+      collapsibleTriggers = Array.from(
+        document.querySelectorAll('.menu__list-item-collapsible .menu__caret')
+      );
+    }
+
+    function refreshVariantCollections() {
+      variantGroups = Array.from(document.querySelectorAll('[data-variant-group]'));
+    }
+
+    function refreshServerCollections() {
+      serverManager = document.querySelector('[data-server-manager]');
+      serverManagerContent = serverManager ? serverManager.querySelector('[data-server-manager-content]') : null;
+      serverSelect = serverManager ? serverManager.querySelector('[data-server-select]') : null;
+      serverCards = serverManager ? Array.from(serverManager.querySelectorAll('[data-server-option]')) : [];
+      serverSummary = serverManager ? serverManager.querySelector('[data-server-summary]') : null;
+    }
+
+    function syncTryItShellsForViewport() {
+      const isMobileViewport = window.matchMedia('(max-width: 840px)').matches;
+      Array.from(document.querySelectorAll('.try-it-shell')).forEach(function (shell) {
+        if (!shell.__kairosViewportInitialized) {
+          shell.__kairosViewportInitialized = true;
+          if (isMobileViewport) {
+            shell.removeAttribute('open');
+            return;
+          }
+          shell.setAttribute('open', '');
+          return;
+        }
+
+        if (isMobileViewport) {
+          return;
+        }
+
+        shell.setAttribute('open', '');
+      });
+    }
+
+    function syncCollapsibleTriggerState(trigger) {
+      if (!trigger) {
+        return;
+      }
+      const listItem = trigger.closest('.menu__list-item');
+      if (!listItem) {
+        return;
+      }
+      trigger.setAttribute('aria-expanded', listItem.classList.contains('menu__list-item--collapsed') ? 'false' : 'true');
+    }
+
+    function bindNavigationInteractions() {
+      collapsibleTriggers.forEach(function (trigger) {
+        if (trigger.__kairosBound) {
+          syncCollapsibleTriggerState(trigger);
+          return;
+        }
+        trigger.__kairosBound = true;
+        syncCollapsibleTriggerState(trigger);
+        trigger.addEventListener('click', function (event) {
+          const listItem = trigger.closest('.menu__list-item');
+          if (!listItem) {
+            return;
+          }
+          event.preventDefault();
+          listItem.classList.toggle('menu__list-item--collapsed');
+          syncCollapsibleTriggerState(trigger);
+        });
+      });
+
+      navLinks.forEach(function (link) {
+        if (link.__kairosBound) {
+          return;
+        }
+        link.__kairosBound = true;
+        link.addEventListener('click', function (event) {
+          const hash = link.getAttribute('href');
+          event.preventDefault();
+          navigateToHash(hash);
+          if (window.matchMedia('(max-width: 840px)').matches) {
+            closeSidebar();
+          }
+        });
+      });
+    }
+
+    function hydrateOverview(renderModel) {
+      const meta = renderModel && renderModel.meta ? renderModel.meta : null;
+      if (!meta) {
+        return;
+      }
+
+      if (overviewTitle && meta.title) {
+        overviewTitle.textContent = meta.title;
+      }
+
+      if (overviewDescription && meta.description) {
+        overviewDescription.textContent = meta.description;
+      }
+
+      if (overviewVersion && meta.version) {
+        setMetaItemContent(
+          overviewVersion,
+          'M5 5h14v2H5zm0 6h8v2H5zm0 6h14v2H5z',
+          'Version',
+          escapeHtml(meta.version)
+        );
+      }
+
+      if (overviewLicense && meta.license && meta.license.name) {
+        const licenseContent = meta.license.url
+          ? '<a href="' + escapeHtml(meta.license.url) + '" class="doc-meta__link" target="_blank" rel="noopener noreferrer">' + escapeHtml(meta.license.name) + '</a>'
+          : escapeHtml(meta.license.name);
+        setMetaItemContent(
+          overviewLicense,
+          'M12 2l8 4v6c0 5-3.4 9.5-8 10-4.6-.5-8-5-8-10V6zm0 2.2L6 7v5c0 3.8 2.4 7.4 6 8.4 3.6-1 6-4.6 6-8.4V7z',
+          'License',
+          licenseContent
+        );
+      }
+
+      if (overviewTerms && meta.termsOfService) {
+        setMetaItemContent(
+          overviewTerms,
+          'M7 4h10v2H7zm-2 4h14v2H5zm2 4h10v2H7zm-2 4h14v2H5z',
+          'Terms',
+          '<a href="' + escapeHtml(meta.termsOfService) + '" class="doc-meta__link" target="_blank" rel="noopener noreferrer">Terms of service</a>'
+        );
+      }
+
+      if (overviewContact && meta.contact && (meta.contact.name || meta.contact.email || meta.contact.url)) {
+        const contactParts = [];
+        if (meta.contact.url && meta.contact.name) {
+          contactParts.push('<a href="' + escapeHtml(meta.contact.url) + '" class="doc-meta__link" target="_blank" rel="noopener noreferrer">' + escapeHtml(meta.contact.name) + '</a>');
+        } else if (meta.contact.name) {
+          contactParts.push(escapeHtml(meta.contact.name));
+        }
+        if (meta.contact.email) {
+          contactParts.push('<a href="mailto:' + escapeHtml(meta.contact.email) + '" class="doc-meta__link">' + escapeHtml(meta.contact.email) + '</a>');
+        }
+        setMetaItemContent(
+          overviewContact,
+          'M21 8V7l-3 2-2-1-4 3-4-3-2 1-3-2v1l9 6zm0 2-9 6-9-6V18h18z',
+          'Contact',
+          contactParts.join(' ')
+        );
+      }
+
+      if (overviewExternalDocs && meta.externalDocs && meta.externalDocs.url) {
+        setMetaItemContent(
+          overviewExternalDocs,
+          'M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3zM5 5h6v2H7v10h10v-4h2v6H5V5z',
+          'Docs',
+          '<a href="' + escapeHtml(meta.externalDocs.url) + '" class="doc-meta__link" target="_blank" rel="noopener noreferrer">' + escapeHtml(meta.externalDocs.description || 'External docs') + '</a>'
+        );
+      }
+
+      if (overviewDownload && renderModel && renderModel.download && renderModel.download.assetPath) {
+        overviewDownload.hidden = false;
+        overviewDownload.setAttribute('href', new URL(renderModel.download.assetPath, window.location.href).toString());
+        overviewDownload.setAttribute('download', renderModel.download.fileName || 'openapi.yaml');
+      }
+    }
+
+    function stringifyValue(value) {
+      if (value === null || value === undefined) {
+        return '';
+      }
+      if (typeof value === 'string') {
+        return value;
+      }
+      return JSON.stringify(value, null, 2);
+    }
+
+    function formatJsonScalar(value) {
+      if (value === null) {
+        return 'null';
+      }
+      if (typeof value === 'string') {
+        return '"' + value + '"';
+      }
+      if (typeof value === 'boolean') {
+        return value ? 'true' : 'false';
+      }
+      return String(value);
+    }
+
+    function getJsonSummary(value) {
+      if (Array.isArray(value)) {
+        return '[' + value.length + ' item' + (value.length === 1 ? '' : 's') + ']';
+      }
+      if (value && typeof value === 'object') {
+        const count = Object.keys(value).length;
+        return '{' + count + ' key' + (count === 1 ? '' : 's') + '}';
+      }
+
+      const scalar = formatJsonScalar(value);
+      return scalar.length > 40 ? scalar.slice(0, 37) + '...' : scalar;
+    }
+
+    function renderJsonTreeValue(name, value) {
+      const hasName = name !== null && name !== undefined && name !== '';
+
+      if (Array.isArray(value)) {
+        return '<details class="json-tree__node">' +
+          '<summary class="json-tree__summary">' +
+            (hasName ? '<span class="json-tree__key">' + escapeHtml(String(name)) + '</span>' : '<span class="json-tree__key">Array</span>') +
+            '<span class="json-tree__meta">' + escapeHtml(getJsonSummary(value)) + '</span>' +
+          '</summary>' +
+          '<div class="json-tree__children">' +
+            (value.length
+              ? value.map(function (item, index) {
+                  return renderJsonTreeValue(index, item);
+                }).join('')
+              : '<div class="json-tree__empty">No items</div>') +
+          '</div>' +
+        '</details>';
+      }
+
+      if (value && typeof value === 'object') {
+        const entries = Object.entries(value);
+        return '<details class="json-tree__node">' +
+          '<summary class="json-tree__summary">' +
+            (hasName ? '<span class="json-tree__key">' + escapeHtml(String(name)) + '</span>' : '<span class="json-tree__key">Object</span>') +
+            '<span class="json-tree__meta">' + escapeHtml(getJsonSummary(value)) + '</span>' +
+          '</summary>' +
+          '<div class="json-tree__children">' +
+            (entries.length
+              ? entries.map(function (entry) {
+                  return renderJsonTreeValue(entry[0], entry[1]);
+                }).join('')
+              : '<div class="json-tree__empty">No properties</div>') +
+          '</div>' +
+        '</details>';
+      }
+
+      return '<div class="json-tree__leaf">' +
+        (hasName ? '<span class="json-tree__key">' + escapeHtml(String(name)) + '</span>' : '<span class="json-tree__key">Value</span>') +
+        '<code class="json-tree__value">' + escapeHtml(formatJsonScalar(value)) + '</code>' +
+      '</div>';
+    }
+
+    function renderJsonExplorer(title, value) {
+      if (value === null || value === undefined || value === '') {
+        return '';
+      }
+
+      return '<section class="json-raw">' +
+        '<div class="json-raw__header">' + escapeHtml(title) + '</div>' +
+        '<pre class="json-raw__body"><code>' + escapeHtml(JSON.stringify(value, null, 2)) + '</code></pre>' +
+      '</section>';
+    }
+
+    function summarizeSchema(item) {
+      if (!item) {
+        return '';
+      }
+      if (item.schemaRef) {
+        return '<code>' + escapeHtml(item.schemaRef) + '</code>';
+      }
+      if (!item.schema) {
+        return '';
+      }
+      if (item.schema.type) {
+        return '<code>' + escapeHtml(Array.isArray(item.schema.type) ? item.schema.type.join(' | ') : item.schema.type) + '</code>';
+      }
+      if (item.schema.oneOf) {
+        return '<code>oneOf</code>';
+      }
+      if (item.schema.anyOf) {
+        return '<code>anyOf</code>';
+      }
+      if (item.schema.allOf) {
+        return '<code>allOf</code>';
+      }
+      return '<code>schema</code>';
+    }
+
+    function renderParameterGroup(title, parameters) {
+      if (!parameters || !parameters.length) {
+        return '';
+      }
+
+      return '<div class="card table-wrap">' +
+        '<h4>' + escapeHtml(title) + '</h4>' +
+        '<table>' +
+        '<thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+        parameters.map(function (parameter) {
+          return '<tr>' +
+            '<td><code>' + escapeHtml(parameter.name) + '</code></td>' +
+            '<td>' + summarizeSchema(parameter) + '</td>' +
+            '<td>' + (parameter.required ? 'yes' : 'no') + '</td>' +
+            '<td>' + escapeHtml(parameter.description || '') + '</td>' +
+            '</tr>';
+        }).join('') +
+        '</tbody>' +
+        '</table>' +
+        '</div>';
+    }
+
+    function renderRequestBody(requestBody) {
+      if (!requestBody) {
+        return '';
+      }
+
+      return requestBody.content.map(function (content) {
+        const example = content.examples && content.examples.length ? content.examples[0] : null;
+        return '<div class="card operation-content-card">' +
+          '<h4>Request Body <code>' + escapeHtml(content.mediaType) + '</code></h4>' +
+          (requestBody.description ? '<p class="operation-card__text">' + escapeHtml(requestBody.description) + '</p>' : '') +
+          '<p class="operation-card__meta-line"><strong>Schema:</strong> ' + summarizeSchema(content) + '</p>' +
+          renderJsonExplorer('Schema', content.schema) +
+          (example ? renderJsonExplorer('Example', example.value) : '') +
+          '</div>';
+      }).join('');
+    }
+
+    function renderVariantSelector(variants, options) {
+      const opts = options || {};
+      if (!variants || variants.length <= 1) {
+        return '';
+      }
+
+      return '<div class="variant-tabs" data-variant-group="' + escapeHtml(opts.groupId || '') + '">' +
+        variants.map(function (variant, index) {
+          const label = variant.summary || variant.id || ('Variant ' + (index + 1));
+          return '<button type="button" role="tab" aria-selected="' + (index === 0 ? 'true' : 'false') + '" class="variant-tab' + (index === 0 ? ' is-active' : '') + '" data-variant-button="' + escapeHtml(variant.id || String(index)) + '">' + escapeHtml(label) + '</button>';
+        }).join('') +
+        '</div>';
+    }
+
+    function renderResponses(responses) {
+      if (!responses || !responses.length) {
+        return '';
+      }
+
+      return '<div class="operation-responses">' +
+        responses.map(function (response) {
+          const firstContent = response.content && response.content.length ? response.content[0] : null;
+          const examples = firstContent && firstContent.examples ? firstContent.examples : [];
+          return '<div class="card operation-response-card">' +
+            '<h4><code>' + escapeHtml(response.statusCode) + '</code> ' + escapeHtml(response.description || '') + '</h4>' +
+            (response.headers && response.headers.length
+              ? '<p class="operation-card__meta-line"><strong>Headers:</strong> ' + response.headers.map(function (header) {
+                  return '<code>' + escapeHtml(header.name) + '</code>';
+                }).join(', ') + '</p>'
+              : '') +
+            (firstContent
+              ? '<p class="operation-card__meta-line"><strong>Body:</strong> <code>' + escapeHtml(firstContent.mediaType) + '</code> ' + summarizeSchema(firstContent) + '</p>'
+              : '') +
+            (firstContent && firstContent.schema ? renderJsonExplorer('Schema', firstContent.schema) : '') +
+            renderVariantSelector(examples, { groupId: 'response-' + escapeHtml(response.statusCode) }) +
+            (examples.length
+              ? examples.map(function (example, index) {
+                  return '<div class="variant-pane' + (index === 0 ? ' is-active' : '') + '" data-variant-pane="' + escapeHtml(example.id || String(index)) + '">' +
+                    renderJsonExplorer(example.summary || example.id || 'Example', example.value) +
+                    '</div>';
+                }).join('')
+              : '') +
+            '</div>';
+        }).join('') +
+        '</div>';
+    }
+
+    function renderSecurity(security) {
+      if (!security || !security.length) {
+        return '<p class="operation-card__meta-line"><strong>Authentication:</strong> None</p>';
+      }
+
+      return '<p class="operation-card__meta-line"><strong>Authentication:</strong> ' + security.map(function (requirement) {
+        return requirement.schemeIds.map(function (id) {
+          return '<code>' + escapeHtml(id) + '</code>';
+        }).join(', ');
+      }).join(' or ') + '</p>';
+    }
+
+    function formatAuthMeta(scheme) {
+      if (!scheme) {
+        return '';
+      }
+      if (scheme.location && scheme.location.kind && scheme.location.name) {
+        return escapeHtml(scheme.location.name + ' ' + scheme.location.kind);
+      }
+      if (scheme.type === 'oauth2') {
+        return 'OAuth 2.0 flows';
+      }
+      if (scheme.type === 'openIdConnect') {
+        return 'Discovery document';
+      }
+      return escapeHtml(scheme.type || '');
+    }
+
+    function dedupeScopes(scopes) {
+      const seen = {};
+      return (scopes || []).filter(function (scope) {
+        if (!scope || !scope.name || seen[scope.name]) {
+          return false;
+        }
+        seen[scope.name] = true;
+        return true;
+      });
+    }
+
+    function renderAuthFlows(flows) {
+      if (!flows || !flows.length) {
+        return '';
+      }
+
+      return '<div class="auth-item__scopes"><h4>Flows</h4><ul>' +
+        flows.map(function (flow) {
+          const parts = [
+            flow.authorizationUrl ? 'auth: ' + flow.authorizationUrl : null,
+            flow.tokenUrl ? 'token: ' + flow.tokenUrl : null,
+            flow.refreshUrl ? 'refresh: ' + flow.refreshUrl : null
+          ].filter(Boolean);
+          return '<li><strong>' + escapeHtml(flow.name) + '</strong>' +
+            (parts.length ? '<div>' + parts.map(function (part) { return '<code>' + escapeHtml(part) + '</code>'; }).join(' ') + '</div>' : '') +
+            '</li>';
+        }).join('') +
+        '</ul></div>';
+    }
+
+    function renderAuthSchemeDetails(scheme) {
+      if (!scheme) {
+        return '';
+      }
+
+      if (scheme.type === 'http') {
+        return '<p class="operation-card__meta-line"><strong>HTTP scheme:</strong> <code>' + escapeHtml(scheme.scheme || 'http') + '</code></p>' +
+          (scheme.location
+            ? '<p class="operation-card__meta-line"><strong>Header:</strong> <code>' + escapeHtml(scheme.location.name) + '</code></p>'
+            : '');
+      }
+
+      if (scheme.type === 'apiKey') {
+        return '<p class="operation-card__meta-line"><strong>Location:</strong> <code>' + escapeHtml(scheme.location ? scheme.location.kind : '') + '</code></p>' +
+          '<p class="operation-card__meta-line"><strong>Name:</strong> <code>' + escapeHtml(scheme.location ? scheme.location.name : '') + '</code></p>';
+      }
+
+      if (scheme.type === 'oauth2') {
+        return '<p class="operation-card__meta-line"><strong>Type:</strong> OAuth 2.0</p>' + renderAuthFlows(scheme.flows);
+      }
+
+      if (scheme.type === 'openIdConnect') {
+        return '<p class="operation-card__meta-line"><strong>Type:</strong> OpenID Connect</p>' +
+          (scheme.openIdConnectUrl
+            ? '<p class="operation-card__meta-line"><strong>Discovery URL:</strong> <a class="doc-meta__link" href="' + escapeHtml(scheme.openIdConnectUrl) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(scheme.openIdConnectUrl) + '</a></p>'
+            : '');
+      }
+
+      return '';
+    }
+
+    function getAuthFieldValue(schemeId, fieldName, fallbackValue) {
+      if (!authState[schemeId]) {
+        authState[schemeId] = {};
+      }
+      if (Object.prototype.hasOwnProperty.call(authState[schemeId], fieldName)) {
+        return authState[schemeId][fieldName];
+      }
+      return fallbackValue || '';
+    }
+
+    function renderAuthInputs(scheme) {
+      if (!scheme) {
+        return '';
+      }
+
+      if (scheme.type === 'http' && scheme.scheme === 'bearer') {
+        return '<div class="auth-inputs">' +
+          '<label class="auth-input">' +
+            '<span class="auth-input__label">Access token</span>' +
+            '<input class="auth-input__control" type="text" data-auth-input="' + escapeHtml(scheme.id) + ':token" value="' + escapeHtml(getAuthFieldValue(scheme.id, 'token', '')) + '" placeholder="YOUR_TOKEN" />' +
+          '</label>' +
+        '</div>';
+      }
+
+      if (scheme.type === 'http' && scheme.scheme === 'basic') {
+        return '<div class="auth-inputs auth-inputs--two">' +
+          '<label class="auth-input">' +
+            '<span class="auth-input__label">Username</span>' +
+            '<input class="auth-input__control" type="text" data-auth-input="' + escapeHtml(scheme.id) + ':username" value="' + escapeHtml(getAuthFieldValue(scheme.id, 'username', '')) + '" placeholder="username" />' +
+          '</label>' +
+          '<label class="auth-input">' +
+            '<span class="auth-input__label">Password</span>' +
+            '<input class="auth-input__control" type="password" data-auth-input="' + escapeHtml(scheme.id) + ':password" value="' + escapeHtml(getAuthFieldValue(scheme.id, 'password', '')) + '" placeholder="password" />' +
+          '</label>' +
+        '</div>';
+      }
+
+      if (scheme.type === 'apiKey') {
+        return '<div class="auth-inputs">' +
+          '<label class="auth-input">' +
+            '<span class="auth-input__label">' + escapeHtml((scheme.location && scheme.location.name) || 'API key') + '</span>' +
+            '<input class="auth-input__control" type="text" data-auth-input="' + escapeHtml(scheme.id) + ':value" value="' + escapeHtml(getAuthFieldValue(scheme.id, 'value', '')) + '" placeholder="YOUR_API_KEY" />' +
+          '</label>' +
+        '</div>';
+      }
+
+      if (scheme.type === 'oauth2') {
+        const flowOptions = (scheme.flows || []).map(function (flow) {
+          return '<option value="' + escapeHtml(flow.name) + '">' + escapeHtml(flow.name) + '</option>';
+        }).join('');
+        return '<div class="auth-inputs auth-inputs--two">' +
+          '<label class="auth-input">' +
+            '<span class="auth-input__label">Flow</span>' +
+            '<select class="auth-input__control" data-auth-input="' + escapeHtml(scheme.id) + ':flow">' +
+              flowOptions +
+            '</select>' +
+          '</label>' +
+          '<label class="auth-input">' +
+            '<span class="auth-input__label">Access token</span>' +
+            '<input class="auth-input__control" type="text" data-auth-input="' + escapeHtml(scheme.id) + ':token" value="' + escapeHtml(getAuthFieldValue(scheme.id, 'token', '')) + '" placeholder="YOUR_ACCESS_TOKEN" />' +
+          '</label>' +
+        '</div>';
+      }
+
+      if (scheme.type === 'openIdConnect') {
+        return '<div class="auth-inputs">' +
+          '<label class="auth-input">' +
+            '<span class="auth-input__label">ID token / access token</span>' +
+            '<input class="auth-input__control" type="text" data-auth-input="' + escapeHtml(scheme.id) + ':token" value="' + escapeHtml(getAuthFieldValue(scheme.id, 'token', '')) + '" placeholder="YOUR_OPENID_TOKEN" />' +
+          '</label>' +
+        '</div>';
+      }
+
+      return '';
+    }
+
+    function rerenderExampleSurfaces() {
+      if (!currentRenderModel) {
+        return;
+      }
+
+      hydrateOperations(currentRenderModel);
+      hydrateWebhooks(currentRenderModel);
+      applyLanguageToAllGroups(getPreferredLanguage());
+      applyServerState({skipPersistence: true});
+    }
+
+    function renderActiveAuthControls(auth) {
+      if (!authenticationControls) {
+        return;
+      }
+      const scheme = auth.schemes.find(function (item) {
+        return item.id === activeAuthSchemeId;
+      }) || auth.schemes[0];
+
+      authenticationControls.innerHTML = '<div class="card auth-selector">' +
+        '<label class="auth-selector__label" for="auth-scheme-select">Active authentication method</label>' +
+        '<div class="auth-selector__row">' +
+          '<select id="auth-scheme-select" class="server-picker__select auth-selector__select" data-auth-scheme-select>' +
+            auth.schemes.map(function (item) {
+              return '<option value="' + escapeHtml(item.id) + '"' + (item.id === activeAuthSchemeId ? ' selected' : '') + '>' + escapeHtml(item.displayName || item.id) + '</option>';
+            }).join('') +
+          '</select>' +
+          '<div class="auth-selector__summary">' +
+            '<span class="auth-selector__summary-label">Currently applied</span>' +
+            '<code class="auth-selector__summary-value" data-auth-scheme-summary>' + escapeHtml((scheme && (scheme.displayName || scheme.id)) || '') + '</code>' +
+          '</div>' +
+        '</div>' +
+        '<div class="auth-selector__inputs" data-auth-inputs>' +
+          renderAuthInputs(scheme) +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderAuthScheme(scheme, isOpen) {
+      const scopes = dedupeScopes(scheme.scopes);
+      return '<details class="auth-item' + (isOpen ? ' is-active' : '') + '" data-auth-scheme="' + escapeHtml(scheme.id) + '"' + (isOpen ? ' open' : '') + '>' +
+        '<summary class="auth-item__summary">' +
+          '<span class="auth-item__title">' + escapeHtml(scheme.displayName || scheme.id) + '</span>' +
+          '<span class="auth-item__meta">' + formatAuthMeta(scheme) + '</span>' +
+        '</summary>' +
+        '<div class="auth-item__body">' +
+          (scheme.description ? '<div class="auth-item__description" data-render-md-links>' + escapeHtml(scheme.description) + '</div>' : '') +
+          renderAuthSchemeDetails(scheme) +
+          (scopes.length
+            ? '<div class="auth-item__scopes"><h4>Scopes</h4><ul>' + scopes.map(function (scope) {
+                return '<li><code>' + escapeHtml(scope.name) + '</code>' + (scope.description ? ' ' + escapeHtml(scope.description) : '') + '</li>';
+              }).join('') + '</ul></div>'
+            : '') +
+        '</div>' +
+      '</details>';
+    }
+
+    function setActiveAuthScheme(schemeId) {
+      activeAuthSchemeId = schemeId;
+      const selector = authenticationControls ? authenticationControls.querySelector('[data-auth-scheme-select]') : null;
+      const summary = authenticationControls ? authenticationControls.querySelector('[data-auth-scheme-summary]') : null;
+      if (selector) {
+        selector.value = schemeId;
+      }
+
+      Array.from(document.querySelectorAll('[data-auth-scheme]')).forEach(function (item) {
+        const isActive = item.getAttribute('data-auth-scheme') === schemeId;
+        item.classList.toggle('is-active', isActive);
+        item.open = isActive;
+      });
+
+      if (summary) {
+        const activeOption = selector ? selector.options[selector.selectedIndex] : null;
+        summary.textContent = activeOption ? activeOption.textContent : '';
+      }
+    }
+
+    function bindAuthenticationInteractions(auth) {
+      renderActiveAuthControls(auth);
+      const selector = authenticationControls ? authenticationControls.querySelector('[data-auth-scheme-select]') : null;
+      if (selector && !selector.__kairosBound) {
+        selector.__kairosBound = true;
+        selector.addEventListener('change', function () {
+          activeAuthSchemeId = selector.value;
+          bindAuthenticationInteractions(auth);
+          setActiveAuthScheme(selector.value);
+          rerenderExampleSurfaces();
+        });
+      }
+
+      Array.from(document.querySelectorAll('[data-auth-input]')).forEach(function (input) {
+        if (input.__kairosBound) {
+          return;
+        }
+        input.__kairosBound = true;
+        const token = input.getAttribute('data-auth-input') || '';
+        const parts = token.split(':');
+        const schemeId = parts[0];
+        const fieldName = parts[1];
+        if (fieldName && input.tagName === 'SELECT') {
+          const currentValue = getAuthFieldValue(schemeId, fieldName, input.value);
+          input.value = currentValue || input.value;
+        }
+        input.addEventListener('input', function () {
+          if (!authState[schemeId]) {
+            authState[schemeId] = {};
+          }
+          authState[schemeId][fieldName] = input.value;
+          rerenderExampleSurfaces();
+        });
+        input.addEventListener('change', function () {
+          if (!authState[schemeId]) {
+            authState[schemeId] = {};
+          }
+          authState[schemeId][fieldName] = input.value;
+          rerenderExampleSurfaces();
+        });
+      });
+
+      Array.from(document.querySelectorAll('[data-auth-scheme]')).forEach(function (item) {
+        const summary = item.querySelector('.auth-item__summary');
+        if (!summary || summary.__kairosBound) {
+          return;
+        }
+        summary.__kairosBound = true;
+        summary.addEventListener('click', function () {
+          const schemeId = item.getAttribute('data-auth-scheme');
+          if (schemeId) {
+            window.setTimeout(function () {
+              setActiveAuthScheme(schemeId);
+            }, 0);
+          }
+        });
+      });
+
+      setActiveAuthScheme(activeAuthSchemeId || auth.defaultSchemeId || (auth.schemes[0] && auth.schemes[0].id) || '');
+    }
+
+    function hydrateAuthentication(renderModel) {
+      const auth = renderModel && renderModel.auth ? renderModel.auth : null;
+      const schemes = auth && Array.isArray(auth.schemes) ? auth.schemes : [];
+
+      if (!schemes.length || !authenticationSection || !authenticationList) {
+        return;
+      }
+
+      authenticationSection.hidden = false;
+      if (authenticationNavItem) {
+        authenticationNavItem.hidden = false;
+      }
+      authenticationList.innerHTML = schemes.map(function (scheme, index) {
+        return renderAuthScheme(scheme, index === 0);
+      }).join('');
+      activeAuthSchemeId = auth.defaultSchemeId || (schemes[0] && schemes[0].id) || null;
+      bindAuthenticationInteractions(auth);
+      renderMarkdownLinks();
+      refreshNavigationCollections();
+      bindNavigationInteractions();
+    }
+
+    function renderServerVariableField(server, variable) {
+      const fieldId = 'server-' + slugify(server.id + '-' + variable.name);
+      if (variable.enumValues && variable.enumValues.length) {
+        return '<div class="server-field">' +
+          '<label class="server-field__label" for="' + escapeHtml(fieldId) + '">' + escapeHtml(variable.name) + '</label>' +
+          '<select id="' + escapeHtml(fieldId) + '" class="server-field__control" data-server-variable data-server-variable-name="' + escapeHtml(variable.name) + '" data-server-default-value="' + escapeHtml(variable.defaultValue) + '">' +
+          variable.enumValues.map(function (value) {
+            return '<option value="' + escapeHtml(value) + '"' + (value === variable.defaultValue ? ' selected' : '') + '>' + escapeHtml(value) + '</option>';
+          }).join('') +
+          '</select>' +
+          '<p class="server-field__meta"><span><strong>Default:</strong> <code>' + escapeHtml(variable.defaultValue) + '</code></span>' +
+          (variable.description ? '<span>' + escapeHtml(variable.description) + '</span>' : '') +
+          '</p>' +
+          '</div>';
+      }
+
+      return '<div class="server-field">' +
+        '<label class="server-field__label" for="' + escapeHtml(fieldId) + '">' + escapeHtml(variable.name) + '</label>' +
+        '<input id="' + escapeHtml(fieldId) + '" class="server-field__control" type="text" value="' + escapeHtml(variable.defaultValue) + '" data-server-variable data-server-variable-name="' + escapeHtml(variable.name) + '" data-server-default-value="' + escapeHtml(variable.defaultValue) + '" />' +
+        '<p class="server-field__meta"><span><strong>Default:</strong> <code>' + escapeHtml(variable.defaultValue) + '</code></span>' +
+        (variable.description ? '<span>' + escapeHtml(variable.description) + '</span>' : '') +
+        '</p>' +
+        '</div>';
+    }
+
+    function hydrateServers(renderModel) {
+      const servers = renderModel && Array.isArray(renderModel.servers) ? renderModel.servers : [];
+      if (!servers.length || !serverManager || !serverManagerContent) {
+        return;
+      }
+
+      serverManager.hidden = false;
+      if (serverNavItem) {
+        serverNavItem.hidden = false;
+      }
+
+      serverManagerContent.innerHTML = '<div class="card server-manager-card">' +
+        '<div class="server-picker">' +
+          '<div class="server-picker__toolbar">' +
+            '<div class="server-picker__status">' +
+              '<p class="server-picker__eyebrow">Examples Use This Server</p>' +
+              '<span class="server-picker__badge">Active</span>' +
+            '</div>' +
+            '<div class="server-picker__intro">' +
+              '<div>' +
+                '<label class="server-picker__label" for="server-select">Choose the server you want to work against</label>' +
+                '<p class="server-picker__hint">Request examples below update automatically. You can also customize server variables before copying an example.</p>' +
+              '</div>' +
+            '</div>' +
+            '<select id="server-select" class="server-picker__select" data-server-select>' +
+              servers.map(function (server) {
+                return '<option value="' + escapeHtml(server.id) + '">' + escapeHtml(server.description || server.urlTemplate) + '</option>';
+              }).join('') +
+            '</select>' +
+            '<div class="server-picker__summary">' +
+              '<span class="server-picker__summary-label">Currently applied</span>' +
+              '<code class="server-picker__summary-url" data-server-summary>' + escapeHtml(servers[0].defaultResolvedUrl) + '</code>' +
+            '</div>' +
+          '</div>' +
+          '<div class="servers-list">' +
+            servers.map(function (server, index) {
+              return '<article class="server-card' + (index === 0 ? ' is-active' : '') + '" data-server-option="' + escapeHtml(server.id) + '" data-server-template="' + escapeHtml(server.urlTemplate) + '">' +
+                '<div class="server-card__header">' +
+                  '<h3>' + escapeHtml(server.description || 'Server') + '</h3>' +
+                  '<code class="server-card__url">' + escapeHtml(server.urlTemplate) + '</code>' +
+                '</div>' +
+                '<p class="server-card__resolved"><strong>Resolved URL:</strong> <code data-server-resolved>' + escapeHtml(server.defaultResolvedUrl) + '</code></p>' +
+                (server.variables && server.variables.length
+                  ? '<div class="server-card__variables">' + server.variables.map(function (variable) {
+                      return renderServerVariableField(server, variable);
+                    }).join('') + '</div>'
+                  : '') +
+              '</article>';
+            }).join('') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+      refreshServerCollections();
+      restoreServerState();
+      bindServerInteractions();
+      refreshNavigationCollections();
+      bindNavigationInteractions();
+    }
+
+    function renderLinks(links) {
+      if (!links || !links.length) {
+        return '';
+      }
+
+      return '<div class="operation-linked-list">' +
+        links.map(function (link) {
+          return '<div class="card operation-content-card">' +
+            '<h4>Link <code>' + escapeHtml(link.id) + '</code></h4>' +
+            (link.description ? '<p class="operation-card__text">' + escapeHtml(link.description) + '</p>' : '') +
+            (link.operationId ? '<p class="operation-card__meta-line"><strong>Operation:</strong> <code>' + escapeHtml(link.operationId) + '</code></p>' : '') +
+            (link.operationRef ? '<p class="operation-card__meta-line"><strong>Operation ref:</strong> <code>' + escapeHtml(link.operationRef) + '</code></p>' : '') +
+            (link.parameters ? '<p class="operation-card__meta-line"><strong>Parameters:</strong></p><pre><code>' + escapeHtml(stringifyValue(link.parameters)) + '</code></pre>' : '') +
+            (link.requestBody ? '<p class="operation-card__meta-line"><strong>Request body:</strong></p><pre><code>' + escapeHtml(stringifyValue(link.requestBody)) + '</code></pre>' : '') +
+            (link.server ? '<p class="operation-card__meta-line"><strong>Server:</strong></p><pre><code>' + escapeHtml(stringifyValue(link.server)) + '</code></pre>' : '') +
+            '</div>';
+        }).join('') +
+        '</div>';
+    }
+
+    function renderCallbacks(callbacks) {
+      if (!callbacks || !callbacks.length) {
+        return '';
+      }
+
+      return '<div class="operation-linked-list">' +
+        callbacks.map(function (callback) {
+          return '<div class="card operation-content-card">' +
+            '<h4>Callback <code>' + escapeHtml(callback.id) + '</code></h4>' +
+            callback.expressions.map(function (expression) {
+              return '<div class="operation-callback-expression">' +
+                '<p class="operation-card__meta-line"><strong>Expression:</strong> <code>' + escapeHtml(expression.expression) + '</code></p>' +
+                expression.operations.map(function (operation) {
+                  return '<div class="operation-callback-operation">' +
+                    '<div class="endpoint"><span class="method ' + escapeHtml(operation.method) + '">' + escapeHtml(operation.method.toUpperCase()) + '</span><span>' + escapeHtml(operation.summary || 'Callback operation') + '</span></div>' +
+                    (operation.description ? '<p class="operation-card__text">' + escapeHtml(operation.description) + '</p>' : '') +
+                    renderRequestBody(operation.requestBody) +
+                    renderResponses(operation.responses) +
+                    '</div>';
+                }).join('') +
+                '</div>';
+            }).join('') +
+            '</div>';
+        }).join('') +
+        '</div>';
+    }
+
+    function getDefaultServerUrl(renderModel, operation) {
+      const activeServerState = readServerState();
+      if (activeServerState && activeServerState.resolvedUrl) {
+        return activeServerState.resolvedUrl;
+      }
+      if (operation && operation.servers && operation.servers.length && operation.servers[0].defaultResolvedUrl) {
+        return operation.servers[0].defaultResolvedUrl;
+      }
+      if (renderModel && renderModel.servers && renderModel.servers.length && renderModel.servers[0].defaultResolvedUrl) {
+        return renderModel.servers[0].defaultResolvedUrl;
+      }
+      return 'https://api.kairos.example';
+    }
+
+    function getDefaultExampleValue(examples) {
+      return examples && examples.length ? examples[0].value : null;
+    }
+
+    function getScalarExample(schema, fallbackName) {
+      if (!schema) {
+        return fallbackName || 'value';
+      }
+      if (schema.example !== undefined) {
+        return schema.example;
+      }
+      if (schema.enum && schema.enum.length) {
+        return schema.enum[0];
+      }
+      switch (schema.type) {
+        case 'string':
+          if (schema.format === 'date-time') {
+            return '2026-03-18T11:30:00Z';
+          }
+          if (schema.format === 'email') {
+            return 'user@example.com';
+          }
+          if (schema.format === 'uri') {
+            return 'https://example.com';
+          }
+          return fallbackName || 'string';
+        case 'integer':
+        case 'number':
+          return schema.minimum !== undefined ? schema.minimum : 1;
+        case 'boolean':
+          return true;
+        case 'array':
+          return [getScalarExample(schema.items, fallbackName)];
+        case 'object':
+          return getSchemaDerivedExample(schema);
+        default:
+          return fallbackName || 'value';
+      }
+    }
+
+    function getSchemaDerivedExample(schema) {
+      if (!schema) {
+        return null;
+      }
+      if (schema.example !== undefined) {
+        return schema.example;
+      }
+      if (schema.oneOf && schema.oneOf.length) {
+        return getSchemaDerivedExample(schema.oneOf[0]);
+      }
+      if (schema.anyOf && schema.anyOf.length) {
+        return getSchemaDerivedExample(schema.anyOf[0]);
+      }
+      if (schema.allOf && schema.allOf.length) {
+        return getSchemaDerivedExample(schema.allOf[0]);
+      }
+      if (schema.type === 'object' || schema.properties) {
+        return Object.entries(schema.properties || {}).reduce(function (acc, entry) {
+          acc[entry[0]] = getScalarExample(entry[1], entry[0]);
+          return acc;
+        }, {});
+      }
+      return getScalarExample(schema);
+    }
+
+    function getParameterExample(parameter) {
+      const explicit = getDefaultExampleValue(parameter.examples);
+      if (explicit !== null && explicit !== undefined) {
+        return explicit;
+      }
+      return getScalarExample(parameter.schema, parameter.name);
+    }
+
+    function getDefaultIncludedParameters(parameters) {
+      return (parameters || []).filter(function (parameter) {
+        return parameter.required || (parameter.examples && parameter.examples.length);
+      });
+    }
+
+    function getRequestBodyExample(requestBody, explicitExample) {
+      if (!requestBody || !requestBody.content || !requestBody.content.length) {
+        return null;
+      }
+      const content = requestBody.content[0];
+      const example = explicitExample !== undefined ? explicitExample : getDefaultExampleValue(content.examples);
+      return {
+        mediaType: content.mediaType,
+        value: example !== null && example !== undefined ? example : getSchemaDerivedExample(content.schema)
+      };
+    }
+
+    function getSelectedAuthScheme(renderModel) {
+      const auth = renderModel && renderModel.auth ? renderModel.auth : null;
+      const schemes = auth && Array.isArray(auth.schemes) ? auth.schemes : [];
+      const selectedSchemeId = activeAuthSchemeId || (auth && auth.defaultSchemeId) || (schemes[0] && schemes[0].id);
+      if (!selectedSchemeId) {
+        return null;
+      }
+      return schemes.find(function (scheme) {
+        return scheme.id === selectedSchemeId;
+      }) || null;
+    }
+
+    function operationSupportsAuthScheme(operation, schemeId) {
+      if (!schemeId) {
+        return false;
+      }
+
+      const security = operation && Array.isArray(operation.security) ? operation.security : [];
+      return security.some(function (requirement) {
+        return Array.isArray(requirement.schemeIds) && requirement.schemeIds.indexOf(schemeId) !== -1;
+      });
+    }
+
+    function encodeBasicCredentials(username, password) {
+      const rawValue = String(username || '') + ':' + String(password || '');
+      const sourceValue = rawValue === ':' ? 'YOUR_USERNAME:YOUR_PASSWORD' : rawValue;
+
+      try {
+        const bytes = new TextEncoder().encode(sourceValue);
+        let binary = '';
+        bytes.forEach(function (byte) {
+          binary += String.fromCharCode(byte);
+        });
+        return window.btoa(binary);
+      } catch (error) {
+        try {
+          return window.btoa(sourceValue);
+        } catch (nestedError) {
+          return 'YOUR_BASE64_CREDENTIALS';
+        }
+      }
+    }
+
+    function buildAuthEntriesForScheme(scheme) {
+      if (!scheme) {
+        return [];
+      }
+
+      const values = authState[scheme.id] || {};
+
+      if (scheme.type === 'http' && scheme.scheme === 'bearer') {
+        return [{ kind: 'header', name: 'Authorization', value: 'Bearer ' + (values.token || 'YOUR_TOKEN') }];
+      }
+
+      if (scheme.type === 'http' && scheme.scheme === 'basic') {
+        return [{ kind: 'header', name: 'Authorization', value: 'Basic ' + encodeBasicCredentials(values.username, values.password) }];
+      }
+
+      if (scheme.type === 'apiKey') {
+        const keyName = scheme.location && scheme.location.name ? scheme.location.name : 'api_key';
+        const keyValue = values.value || 'YOUR_API_KEY';
+
+        if (scheme.location && scheme.location.kind === 'query') {
+          return [{ kind: 'query', name: keyName, value: keyValue }];
+        }
+
+        if (scheme.location && scheme.location.kind === 'cookie') {
+          return [{ kind: 'header', name: 'Cookie', value: keyName + '=' + keyValue }];
+        }
+
+        return [{ kind: 'header', name: keyName, value: keyValue }];
+      }
+
+      if (scheme.type === 'oauth2') {
+        return [{ kind: 'header', name: 'Authorization', value: 'Bearer ' + (values.token || 'YOUR_ACCESS_TOKEN') }];
+      }
+
+      if (scheme.type === 'openIdConnect') {
+        return [{ kind: 'header', name: 'Authorization', value: 'Bearer ' + (values.token || 'YOUR_OPENID_TOKEN') }];
+      }
+
+      return [];
+    }
+
+    function getAuthPlaceholders(renderModel, operation) {
+      const selectedScheme = getSelectedAuthScheme(renderModel);
+      if (!selectedScheme || !operationSupportsAuthScheme(operation, selectedScheme.id)) {
+        return [];
+      }
+
+      return buildAuthEntriesForScheme(selectedScheme);
+    }
+
+    function getExampleAuthState(renderModel, operation) {
+      const selectedScheme = getSelectedAuthScheme(renderModel);
+      const security = operation && Array.isArray(operation.security) ? operation.security : [];
+
+      if (!selectedScheme) {
+        return {
+          selectedScheme: null,
+          supported: !security.length,
+          requiresAuth: security.length > 0
+        };
+      }
+
+      return {
+        selectedScheme: selectedScheme,
+        supported: operationSupportsAuthScheme(operation, selectedScheme.id),
+        requiresAuth: security.length > 0
+      };
+    }
+
+    function renderExampleAuthNotice(renderModel, operation) {
+      const authStateForExample = getExampleAuthState(renderModel, operation);
+
+      if (!authStateForExample.selectedScheme || authStateForExample.supported) {
+        return '';
+      }
+
+      if (!authStateForExample.requiresAuth) {
+        return '<p class="example-panel__notice">The selected authentication method <code>' +
+          escapeHtml(authStateForExample.selectedScheme.displayName || authStateForExample.selectedScheme.id) +
+          '</code> is not applied because this operation does not require authentication.</p>';
+      }
+
+      return '<p class="example-panel__notice">The selected authentication method <code>' +
+        escapeHtml(authStateForExample.selectedScheme.displayName || authStateForExample.selectedScheme.id) +
+        '</code> is not supported by this operation, so the generated example omits auth.</p>';
+    }
+
+    function buildRequestExampleData(renderModel, operation, requestVariant) {
+      const baseUrl = getDefaultServerUrl(renderModel, operation).replace(/\/$/, '');
+      const pathParameters = getDefaultIncludedParameters(operation.parameters && operation.parameters.path);
+      const queryParameters = getDefaultIncludedParameters(operation.parameters && operation.parameters.query);
+      const headerParameters = getDefaultIncludedParameters(operation.parameters && operation.parameters.header);
+      const cookieParameters = getDefaultIncludedParameters(operation.parameters && operation.parameters.cookie);
+      const authPlaceholders = getAuthPlaceholders(renderModel, operation);
+      const requestBody = getRequestBodyExample(operation.requestBody, requestVariant ? requestVariant.value : undefined);
+      let path = operation.path || '/';
+
+      pathParameters.forEach(function (parameter) {
+        path = path.replace(new RegExp('\\{' + parameter.name + '\\}', 'g'), encodeURIComponent(String(getParameterExample(parameter))));
+      });
+
+      const queryPairs = queryParameters.map(function (parameter) {
+        return [parameter.name, getParameterExample(parameter)];
+      });
+      authPlaceholders.filter(function (entry) { return entry.kind === 'query'; }).forEach(function (entry) {
+        queryPairs.push([entry.name, entry.value]);
+      });
+
+      const queryString = queryPairs.length ? '?' + queryPairs.map(function (pair) {
+        return encodeURIComponent(pair[0]) + '=' + encodeURIComponent(String(pair[1]));
+      }).join('&') : '';
+
+      const headers = headerParameters.map(function (parameter) {
+        return { name: parameter.name, value: String(getParameterExample(parameter)) };
+      });
+      cookieParameters.forEach(function (parameter) {
+        headers.push({ name: 'Cookie', value: parameter.name + '=' + String(getParameterExample(parameter)) });
+      });
+      authPlaceholders.filter(function (entry) { return entry.kind === 'header'; }).forEach(function (entry) {
+        headers.push({ name: entry.name, value: entry.value });
+      });
+      if (requestBody && requestBody.mediaType) {
+        headers.push({ name: 'Content-Type', value: requestBody.mediaType });
+      }
+
+      return {
+        method: (operation.method || 'get').toUpperCase(),
+        baseUrl: baseUrl,
+        url: baseUrl + path + queryString,
+        headers: headers,
+        mediaType: requestBody && requestBody.mediaType ? requestBody.mediaType : null,
+        body: requestBody && requestBody.value !== undefined ? requestBody.value : null
+      };
+    }
+
+    function renderCurlExample(data) {
+      const lines = ["curl --location '" + data.url + "'"];
+      data.headers.forEach(function (header) {
+        lines.push("--header '" + header.name + ': ' + String(header.value).replace(/'/g, "'\\''") + "'");
+      });
+      if (data.body !== null) {
+        lines.push("--data-raw '" + JSON.stringify(data.body, null, 4).replace(/'/g, "'\\''") + "'");
+      }
+      return lines.join(' \\\n');
+    }
+
+    function renderJavaScriptExample(data) {
+      const lines = [];
+      lines.push('const myHeaders = new Headers();');
+      data.headers.forEach(function (header) {
+        lines.push('myHeaders.append(' + JSON.stringify(header.name) + ', ' + JSON.stringify(String(header.value)) + ');');
+      });
+
+      if (data.body !== null) {
+        lines.push('');
+        lines.push('const raw = JSON.stringify(' + JSON.stringify(data.body, null, 2) + ');');
+      }
+
+      lines.push('');
+      lines.push('const requestOptions = {');
+      lines.push('  method: ' + JSON.stringify(data.method) + ',');
+      lines.push('  headers: myHeaders,');
+      if (data.body !== null) {
+        lines.push('  body: raw,');
+      }
+      lines.push('  redirect: "follow"');
+      lines.push('};');
+      lines.push('');
+      lines.push('fetch(' + JSON.stringify(data.url) + ', requestOptions)');
+      lines.push('  .then((response) => response.text())');
+      lines.push('  .then((result) => console.log(result))');
+      lines.push('  .catch((error) => console.error(error));');
+      return lines.join('\n');
+    }
+
+    function renderPythonExample(data) {
+      const lines = ['import requests'];
+      const hasBody = data.body !== null;
+      if (hasBody) {
+        lines.push('import json');
+      }
+      lines.push('');
+      lines.push('url = ' + JSON.stringify(data.url));
+
+      if (hasBody) {
+        lines.push('');
+        lines.push('payload = json.dumps(' + JSON.stringify(data.body, null, 2) + ')');
+      }
+
+      if (data.body !== null) {
+        lines.push('');
+      }
+      if (data.headers.length) {
+        lines.push('headers = {');
+        data.headers.forEach(function (header, index) {
+          const suffix = index === data.headers.length - 1 ? '' : ',';
+          lines.push("  " + JSON.stringify(header.name) + ': ' + JSON.stringify(String(header.value)) + suffix);
+        });
+        lines.push('}');
+      } else {
+        lines.push('headers = {}');
+      }
+
+      lines.push('');
+      lines.push(
+        'response = requests.request(' +
+        JSON.stringify(data.method) +
+        ', url, headers=headers' +
+        (hasBody ? ', data=payload' : '') +
+        ')'
+      );
+      lines.push('');
+      lines.push('print(response.text)');
+      return lines.join('\n');
+    }
+
+    function renderRubyExample(data) {
+      const methodClass = data.method.charAt(0) + data.method.slice(1).toLowerCase();
+      const lines = ['require "uri"', 'require "json"', 'require "net/http"', '', 'url = URI(' + JSON.stringify(data.url) + ')', '', 'http = Net::HTTP.new(url.host, url.port);', 'request = Net::HTTP::' + methodClass + '.new(url)'];
+      data.headers.forEach(function (header) {
+        lines.push('request[' + JSON.stringify(header.name) + '] = ' + JSON.stringify(String(header.value)));
+      });
+      if (data.body !== null) {
+        lines.push('request.body = JSON.dump(' + JSON.stringify(data.body, null, 2) + ')');
+      }
+      lines.push('');
+      lines.push('response = http.request(request)');
+      lines.push('puts response.read_body');
+      return lines.join('\n');
+    }
+
+    function renderPhpExample(data) {
+      const lines = ['<?php', 'use GuzzleHttp\\\\Client;', 'use GuzzleHttp\\\\Psr7\\\\Request;', '', '$client = new Client();'];
+      if (data.headers.length) {
+        lines.push('$headers = [');
+        data.headers.forEach(function (header, index) {
+          const suffix = index === data.headers.length - 1 ? '' : ',';
+          lines.push("  '" + header.name.replace(/'/g, "\\'") + "' => '" + String(header.value).replace(/'/g, "\\'") + "'" + suffix);
+        });
+        lines.push('];');
+      } else {
+        lines.push('$headers = [];');
+      }
+      if (data.body !== null) {
+        lines.push('$body = \'' + JSON.stringify(data.body, null, 2).replace(/'/g, "\\'") + '\';');
+      } else {
+        lines.push('$body = \'\';');
+      }
+      lines.push('$request = new Request(' + JSON.stringify(data.method) + ', ' + JSON.stringify(data.url) + ', $headers, $body);');
+      lines.push('$res = $client->sendAsync($request)->wait();');
+      lines.push('echo $res->getBody();');
+      return lines.join('\n');
+    }
+
+    function renderPhpValue(value, depth) {
+      const indentUnit = '    ';
+      const currentIndent = new Array(depth + 1).join(indentUnit);
+      const nextIndent = new Array(depth + 2).join(indentUnit);
+
+      if (value === null) {
+        return 'null';
+      }
+      if (Array.isArray(value)) {
+        if (!value.length) {
+          return '[]';
+        }
+        return '[\n' + value.map(function (item) {
+          return nextIndent + renderPhpValue(item, depth + 1) + ',';
+        }).join('\n') + '\n' + currentIndent + ']';
+      }
+      if (typeof value === 'object') {
+        const entries = Object.entries(value);
+        if (!entries.length) {
+          return '[]';
+        }
+        return '[\n' + entries.map(function (entry) {
+          return nextIndent + '\'' + String(entry[0]).replace(/'/g, "\\'") + '\' => ' + renderPhpValue(entry[1], depth + 1) + ',';
+        }).join('\n') + '\n' + currentIndent + ']';
+      }
+      if (typeof value === 'string') {
+        return '\'' + value.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\'';
+      }
+      if (typeof value === 'boolean') {
+        return value ? 'true' : 'false';
+      }
+      return String(value);
+    }
+
+    function renderJavaExample(data) {
+      const lines = [
+        'OkHttpClient client = new OkHttpClient().newBuilder()',
+        '  .build();'
+      ];
+      if (data.body !== null) {
+        lines.push('MediaType mediaType = MediaType.parse("application/json");');
+        lines.push('RequestBody body = RequestBody.create(mediaType, ' + JSON.stringify(JSON.stringify(data.body, null, 4)) + ');');
+      }
+      lines.push('Request request = new Request.Builder()');
+      lines.push('  .url(' + JSON.stringify(data.url) + ')');
+      lines.push('  .method(' + JSON.stringify(data.method) + ', ' + (data.body !== null ? 'body' : 'null') + ')');
+      data.headers.forEach(function (header) {
+        lines.push('  .addHeader(' + JSON.stringify(header.name) + ', ' + JSON.stringify(String(header.value)) + ')');
+      });
+      lines.push('  .build();');
+      lines.push('Response response = client.newCall(request).execute();');
+      return lines.join('\n');
+    }
+
+    function renderRequestExample(language, data) {
+      switch (language) {
+        case 'python':
+          return renderPythonExample(data);
+        case 'javascript':
+          return renderJavaScriptExample(data);
+        case 'ruby':
+          return renderRubyExample(data);
+        case 'php':
+          return renderPhpExample(data);
+        case 'java':
+          return renderJavaExample(data);
+        case 'curl':
+        default:
+          return renderCurlExample(data);
+      }
+    }
+
+    function renderExamplePanel(renderModel, operation) {
+      const requestVariants = operation.examples && operation.examples.request && operation.examples.request.length
+        ? operation.examples.request
+        : [{ id: 'default', summary: null, value: undefined }];
+
+      return '<section class="example-panel">' +
+        '<div class="example-panel__header">' +
+          '<h3>Request Example</h3>' +
+          '<button type="button" class="copy-example-btn" data-copy-example>Copy</button>' +
+        '</div>' +
+        renderExampleAuthNotice(renderModel, operation) +
+        renderVariantSelector(requestVariants, { groupId: 'request-' + escapeHtml(operation.id) }) +
+        requestVariants.map(function (variant, variantIndex) {
+          const requestData = buildRequestExampleData(renderModel, operation, variant);
+          return '<div class="variant-pane' + (variantIndex === 0 ? ' is-active' : '') + '" data-variant-pane="' + escapeHtml(variant.id || String(variantIndex)) + '">' +
+            '<section class="example-panel__language-group" data-code-tabs data-code-sync="language">' +
+              '<div class="example-panel__header example-panel__header--nested">' +
+                '<div class="code-tabs" role="tablist" aria-label="Code examples">' +
+                  supportedExampleLanguages.map(function (language) {
+                    return '<button type="button" role="tab" aria-selected="' + (language === defaultLanguage ? 'true' : 'false') + '" class="code-tab' + (language === defaultLanguage ? ' is-active' : '') + '" data-code-tab="' + escapeHtml(language) + '">' + escapeHtml(language) + '</button>';
+                  }).join('') +
+                '</div>' +
+              '</div>' +
+              supportedExampleLanguages.map(function (language) {
+                return '<div role="tabpanel" aria-hidden="' + (language === defaultLanguage ? 'false' : 'true') + '" class="code-pane' + (language === defaultLanguage ? ' is-active' : '') + '" data-code-pane="' + escapeHtml(language) + '" data-example-base-url="' + escapeHtml(requestData.baseUrl) + '"><pre><code>' + escapeHtml(renderRequestExample(language, requestData)) + '</code></pre></div>';
+              }).join('') +
+            '</section>' +
+          '</div>';
+        }).join('') +
+      '</section>';
+    }
+
+    function renderTryItMultipartField(propertyName, schema, exampleValue, encoding, required) {
+      const fieldToken = 'multipart:' + propertyName;
+      const label = escapeHtml(propertyName) + (required ? ' <strong>*</strong>' : '');
+      const contentTypeNote = encoding && encoding.contentType
+        ? '<span class="try-it-field__meta">Sent as <code>' + escapeHtml(encoding.contentType) + '</code></span>'
+        : '';
+
+      if (schema && schema.type === 'string' && schema.format === 'binary') {
+        return '<label class="try-it-field">' +
+          '<span class="try-it-field__label">' + label + '</span>' +
+          '<input class="try-it-field__control" type="file" data-try-it-param="' + escapeHtml(fieldToken) + '"' + (required ? ' data-try-it-required="true"' : '') + ' />' +
+          '<span class="try-it-field__meta">' + (exampleValue ? 'Example file: <code>' + escapeHtml(String(exampleValue)) + '</code>' : 'Choose a local file to send.') + '</span>' +
+          contentTypeNote +
+        '</label>';
+      }
+
+      if (schema && (schema.type === 'object' || schema.type === 'array')) {
+        return '<label class="try-it-field">' +
+          '<span class="try-it-field__label">' + label + '</span>' +
+          '<textarea class="try-it-field__control try-it-field__control--textarea try-it-field__control--compact" data-try-it-param="' + escapeHtml(fieldToken) + '"' + (required ? ' data-try-it-required="true"' : '') + '>' + escapeHtml(JSON.stringify(exampleValue !== undefined ? exampleValue : getSchemaDerivedExample(schema), null, 2)) + '</textarea>' +
+          contentTypeNote +
+        '</label>';
+      }
+
+      return '<label class="try-it-field">' +
+        '<span class="try-it-field__label">' + label + '</span>' +
+        '<input class="try-it-field__control" type="text" data-try-it-param="' + escapeHtml(fieldToken) + '" value="' + escapeHtml(String(exampleValue !== undefined ? exampleValue : getScalarExample(schema, propertyName) || '')) + '"' + (required ? ' data-try-it-required="true"' : '') + ' />' +
+        contentTypeNote +
+      '</label>';
+    }
+
+    function renderOptionalTryItToggle(itemsMarkup, count, sectionLabel) {
+      if (!itemsMarkup || !count) {
+        return '';
+      }
+
+      return '<details class="try-it-panel__optional">' +
+        '<summary class="try-it-panel__optional-summary">Show optional ' + escapeHtml(sectionLabel) + ' (' + count + ')</summary>' +
+        '<div class="try-it-panel__optional-body">' + itemsMarkup + '</div>' +
+      '</details>';
+    }
+
+    function renderTryItBodyEditor(operation) {
+      const requestBody = operation && operation.requestBody ? operation.requestBody : null;
+      const content = requestBody && requestBody.content && requestBody.content.length ? requestBody.content[0] : null;
+      if (!content) {
+        return '';
+      }
+
+      const requestBodyExample = getRequestBodyExample(requestBody);
+      const mediaType = content.mediaType || '';
+
+      if (mediaType.indexOf('multipart/form-data') === 0) {
+        const schema = content.schema || {};
+        const properties = schema.properties || {};
+        const required = Array.isArray(schema.required) ? schema.required : [];
+        const exampleValue = requestBodyExample && requestBodyExample.value && typeof requestBodyExample.value === 'object'
+          ? requestBodyExample.value
+          : {};
+        const requiredFields = [];
+        const optionalFields = [];
+
+        Object.keys(properties).forEach(function (propertyName) {
+          const fieldMarkup = renderTryItMultipartField(
+            propertyName,
+            properties[propertyName],
+            exampleValue[propertyName],
+            content.encoding && content.encoding[propertyName],
+            required.indexOf(propertyName) !== -1
+          );
+
+          if (required.indexOf(propertyName) !== -1) {
+            requiredFields.push(fieldMarkup);
+            return;
+          }
+
+          optionalFields.push(fieldMarkup);
+        });
+
+        return '<div class="try-it-panel__group">' +
+          '<h4>Body</h4>' +
+          '<p class="try-it-panel__body-meta"><code>' + escapeHtml(mediaType) + '</code></p>' +
+          (requiredFields.length ? '<div class="try-it-panel__fields">' + requiredFields.join('') + '</div>' : '') +
+          renderOptionalTryItToggle(
+            optionalFields.length ? '<div class="try-it-panel__fields">' + optionalFields.join('') + '</div>' : '',
+            optionalFields.length,
+            'body fields'
+          ) +
+        '</div>';
+      }
+
+      return requestBodyExample
+        ? '<div class="try-it-panel__group">' +
+            '<h4>Body</h4>' +
+            '<label class="try-it-field">' +
+              '<span class="try-it-field__label">' + escapeHtml(requestBodyExample.mediaType || 'request body') + '</span>' +
+              '<textarea class="try-it-field__control try-it-field__control--textarea" data-try-it-body>' + escapeHtml(JSON.stringify(requestBodyExample.value, null, 2)) + '</textarea>' +
+            '</label>' +
+          '</div>'
+        : '';
+    }
+
+    function renderTryItPanel(operation) {
+      const parameterGroups = [
+        { key: 'path', label: 'Path parameters' },
+        { key: 'query', label: 'Query parameters' },
+        { key: 'header', label: 'Header parameters' },
+        { key: 'cookie', label: 'Cookie parameters' }
+      ];
+      const parameterMarkup = parameterGroups.map(function (group) {
+        const parameters = operation.parameters && operation.parameters[group.key] ? operation.parameters[group.key] : [];
+        if (!parameters.length) {
+          return '';
+        }
+
+        const requiredFields = [];
+        const optionalFields = [];
+
+        parameters.forEach(function (parameter) {
+          const fieldMarkup = '<label class="try-it-field">' +
+            '<span class="try-it-field__label">' + escapeHtml(parameter.name) + (parameter.required ? ' <strong>*</strong>' : '') + '</span>' +
+            '<input class="try-it-field__control" type="text" data-try-it-param="' + escapeHtml(parameter.in + ':' + parameter.name) + '" value="' + escapeHtml(String(getParameterExample(parameter) || '')) + '" placeholder="' + escapeHtml(parameter.description || parameter.name) + '" />' +
+          '</label>';
+
+          if (parameter.required) {
+            requiredFields.push(fieldMarkup);
+            return;
+          }
+
+          optionalFields.push(fieldMarkup);
+        });
+
+        return '<div class="try-it-panel__group">' +
+          '<h4>' + escapeHtml(group.label) + '</h4>' +
+          (requiredFields.length ? '<div class="try-it-panel__fields">' + requiredFields.join('') + '</div>' : '') +
+          renderOptionalTryItToggle(
+            optionalFields.length ? '<div class="try-it-panel__fields">' + optionalFields.join('') + '</div>' : '',
+            optionalFields.length,
+            group.label.toLowerCase()
+          ) +
+        '</div>';
+      }).join('');
+      const bodyMarkup = renderTryItBodyEditor(operation);
+
+      return '<section class="try-it-panel" data-try-it-panel data-operation-id="' + escapeHtml(operation.id) + '">' +
+        '<div class="try-it-panel__header">' +
+          '<div>' +
+            '<h3>Try It</h3>' +
+            '<p class="try-it-panel__hint">Runs in your browser against the active server and requires CORS support.</p>' +
+          '</div>' +
+          '<div class="try-it-panel__actions">' +
+            '<button type="button" class="ui-btn ui-btn--ghost ui-btn--sm" data-try-it-reset>Reset</button>' +
+            '<button type="button" class="ui-btn ui-btn--accent ui-btn--sm" data-try-it-send>Send request</button>' +
+          '</div>' +
+        '</div>' +
+        (parameterMarkup || bodyMarkup
+          ? '<div class="try-it-panel__editor">' + parameterMarkup + bodyMarkup + '</div>'
+          : '') +
+        '<div class="try-it-panel__preview">' +
+          '<div class="try-it-panel__preview-header">' +
+            '<h4>Request Preview</h4>' +
+            '<span class="try-it-panel__preview-hint">Updates before send</span>' +
+          '</div>' +
+          '<pre class="try-it-panel__preview-code" data-try-it-preview><code></code></pre>' +
+        '</div>' +
+        '<div class="try-it-panel__status" data-try-it-status role="status" aria-live="polite">Ready to send.</div>' +
+        '<div class="try-it-panel__response" data-try-it-response hidden aria-live="polite">' +
+          '<div class="try-it-panel__response-meta">' +
+            '<div class="try-it-panel__response-card">' +
+              '<span class="try-it-panel__response-label">Status</span>' +
+              '<code data-try-it-response-status>Ready</code>' +
+            '</div>' +
+            '<div class="try-it-panel__response-card">' +
+              '<span class="try-it-panel__response-label">Timing</span>' +
+              '<code data-try-it-response-timing>-</code>' +
+            '</div>' +
+          '</div>' +
+          '<div class="try-it-panel__response-block">' +
+            '<div class="try-it-panel__preview-header">' +
+              '<h4>Response Headers</h4>' +
+            '</div>' +
+            '<pre class="try-it-panel__response-code"><code data-try-it-response-headers></code></pre>' +
+          '</div>' +
+          '<div class="try-it-panel__response-block">' +
+            '<div class="try-it-panel__preview-header">' +
+              '<h4>Response Body</h4>' +
+            '</div>' +
+            '<pre class="try-it-panel__response-code"><code data-try-it-response-body></code></pre>' +
+          '</div>' +
+        '</div>' +
+      '</section>';
+    }
+
+    function renderOperationRequestDetails(operation) {
+      const detailSections = [
+        renderParameterGroup('Path parameters', operation.parameters && operation.parameters.path),
+        renderParameterGroup('Query parameters', operation.parameters && operation.parameters.query),
+        renderParameterGroup('Header parameters', operation.parameters && operation.parameters.header),
+        renderParameterGroup('Cookie parameters', operation.parameters && operation.parameters.cookie),
+        renderRequestBody(operation.requestBody),
+        renderLinks(operation.links),
+        renderCallbacks(operation.callbacks)
+      ].filter(Boolean);
+
+      if (!detailSections.length) {
+        return '';
+      }
+
+      return '<details class="operation-card__details">' +
+        '<summary class="operation-card__details-summary">' +
+          '<div class="operation-card__section-header">' +
+            '<h5>Request Details</h5>' +
+            '<p>Parameters, body schemas, and integration wiring for this operation.</p>' +
+          '</div>' +
+        '</summary>' +
+        '<div class="operation-card__details-body">' + detailSections.join('') + '</div>' +
+      '</details>';
+    }
+
+    function renderOperationResponsesSection(operation) {
+      const responsesMarkup = renderResponses(operation.responses);
+      if (!responsesMarkup) {
+        return '';
+      }
+
+      return '<details class="operation-card__details operation-card__details--responses" open>' +
+        '<summary class="operation-card__details-summary">' +
+          '<div class="operation-card__section-header">' +
+            '<h5>Responses</h5>' +
+            '<p>Status codes, headers, and example payloads returned by this operation.</p>' +
+          '</div>' +
+        '</summary>' +
+        '<div class="operation-card__details-body">' + responsesMarkup + '</div>' +
+      '</details>';
+    }
+
+    function renderOperationWorkspace(renderModel, operation, options) {
+      const opts = options || {};
+      const exampleMarkup = renderExamplePanel(renderModel, operation);
+      const tryItMarkup = opts.enableTryIt === false
+        ? ''
+        : '<details class="try-it-shell" open>' +
+            '<summary class="try-it-shell__summary">Try It</summary>' +
+            renderTryItPanel(operation) +
+          '</details>';
+      const workspaceClassName = tryItMarkup
+        ? 'api-operation api-operation--interactive'
+        : 'api-operation api-operation--examples-only';
+
+      return '<section class="operation-card__workspace ' + workspaceClassName + '">' +
+        '<div class="api-operation__main">' + exampleMarkup + '</div>' +
+        (tryItMarkup ? '<div class="api-operation__aside">' + tryItMarkup + '</div>' : '') +
+      '</section>';
+    }
+
+    function renderOperationCard(operation, options) {
+      const opts = options || {};
+      const title = operation.summary || operation.id;
+      const anchorPrefix = opts.anchorPrefix || 'operation';
+      const anchorId = getOperationAnchorId(operation, anchorPrefix);
+      const endpointLabel = opts.endpointLabel || operation.path || operation.name || '';
+      const endpointMeta = opts.endpointMeta
+        ? '<p class="operation-card__meta-line"><strong>' + escapeHtml(opts.endpointMeta.label) + ':</strong> <code>' + escapeHtml(opts.endpointMeta.value) + '</code></p>'
+        : '';
+
+      return '<article class="card operation-card">' +
+        '<h4 class="anchor" id="' + escapeHtml(anchorId) + '">' + escapeHtml(title) +
+        '<a href="#' + escapeHtml(anchorId) + '" class="hash-link" aria-label="Direct link to ' + escapeHtml(title) + '" title="Direct link to ' + escapeHtml(title) + '" translate="no">\u200b</a>' +
+        '</h4>' +
+        '<div class="endpoint"><span class="method ' + escapeHtml(operation.method) + '">' + escapeHtml(operation.method.toUpperCase()) + '</span><span>' + escapeHtml(endpointLabel) + '</span></div>' +
+        (operation.description ? '<p class="operation-card__text">' + escapeHtml(operation.description) + '</p>' : '') +
+        '<div class="operation-card__summary">' +
+        (operation.deprecated ? '<p class="operation-card__meta-line"><strong>Status:</strong> Deprecated</p>' : '') +
+        endpointMeta +
+        renderSecurity(operation.security) +
+        '</div>' +
+        renderOperationWorkspace(opts.renderModel, operation, { enableTryIt: opts.enableTryIt }) +
+        renderOperationRequestDetails(operation) +
+        renderOperationResponsesSection(operation) +
+        '</article>';
+    }
+
+    function renderComponentCard(item, kind) {
+      const title = item.name || item.id;
+      const anchorId = getComponentAnchorId(item, kind);
+      const primaryValue = kind === 'schema' ? item.schema : item.value;
+      const examples = Array.isArray(item.examples) ? item.examples : [];
+
+      return '<article class="card operation-card component-card">' +
+        '<h4 class="anchor" id="' + escapeHtml(anchorId) + '">' + escapeHtml(title) +
+        '<a href="#' + escapeHtml(anchorId) + '" class="hash-link" aria-label="Direct link to ' + escapeHtml(title) + '" title="Direct link to ' + escapeHtml(title) + '" translate="no">\u200b</a>' +
+        '</h4>' +
+        '<p class="component-card__meta"><strong>Reference:</strong> <code>' + escapeHtml(item.sourceRef || '') + '</code></p>' +
+        (item.description ? '<p class="component-card__description">' + escapeHtml(item.description) + '</p>' : '') +
+        (primaryValue ? renderJsonExplorer(kind === 'schema' ? 'Schema' : 'Value', primaryValue) : '') +
+        (examples.length
+          ? examples.map(function (example) {
+              return '<div class="card operation-content-card">' +
+                '<h4>Example <code>' + escapeHtml(example.id) + '</code></h4>' +
+                (example.summary ? '<p class="operation-card__text">' + escapeHtml(example.summary) + '</p>' : '') +
+                renderJsonExplorer('Example', example.value) +
+                '</div>';
+            }).join('')
+          : '') +
+        '</article>';
+    }
+
+    function hydrateOperations(renderModel) {
+      const operations = renderModel && Array.isArray(renderModel.operations) ? renderModel.operations.filter(function (operation) {
+        return operation.kind === 'path';
+      }) : [];
+      const tags = renderModel && Array.isArray(renderModel.tags) ? renderModel.tags : [];
+
+      if (!operations.length || !operationsSection || !operationsGrid) {
+        return;
+      }
+
+      const groupedByTag = operations.reduce(function (acc, operation) {
+        const groupNames = operation.tags && operation.tags.length ? operation.tags : ['Untagged'];
+        groupNames.forEach(function (tagName) {
+          acc[tagName] = acc[tagName] || [];
+          acc[tagName].push(operation);
+        });
+        return acc;
+      }, {});
+
+      const orderedTagNames = tags.map(function (tag) {
+        return tag.name;
+      }).concat(Object.keys(groupedByTag).filter(function (tagName) {
+        return tags.every(function (tag) {
+          return tag.name !== tagName;
+        });
+      }));
+
+      operationsSection.hidden = false;
+      if (operationsNavItem) {
+        operationsNavItem.hidden = false;
+      }
+
+      operationsGrid.innerHTML = orderedTagNames.filter(function (tagName) {
+        return groupedByTag[tagName] && groupedByTag[tagName].length;
+      }).map(function (tagName) {
+        const tagId = slugify(tagName);
+        return '<section class="operation-group">' +
+          '<h3 class="anchor" id="operations-tag-' + escapeHtml(tagId) + '">' + escapeHtml(tagName) +
+          '<a href="#operations-tag-' + escapeHtml(tagId) + '" class="hash-link" aria-label="Direct link to ' + escapeHtml(tagName) + ' operations" title="Direct link to ' + escapeHtml(tagName) + ' operations" translate="no">\u200b</a>' +
+          '</h3>' +
+          '<div class="operation-group__list">' +
+          groupedByTag[tagName].map(function (operation) {
+            return renderOperationCard(operation, {
+              anchorPrefix: 'operation',
+              renderModel: renderModel
+            });
+          }).join('') +
+          '</div>' +
+          '</section>';
+      }).join('');
+
+      if (operationsNavGroup && operationsNavList) {
+        operationsNavGroup.hidden = false;
+        operationsNavList.innerHTML = orderedTagNames.filter(function (tagName) {
+          return groupedByTag[tagName] && groupedByTag[tagName].length;
+        }).map(function (tagName) {
+          const tagId = slugify(tagName);
+          return '<li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed">' +
+            '<div class="menu__list-item-collapsible">' +
+            '<a class="menu__link menu__link--sublist" href="#operations-tag-' + escapeHtml(tagId) + '">' + escapeHtml(tagName) + '</a>' +
+            '<button type="button" class="menu__caret" aria-label="Toggle ' + escapeHtml(tagName) + ' operations" aria-expanded="false"></button>' +
+            '</div>' +
+            '<ul class="menu__list">' +
+            groupedByTag[tagName].map(function (operation) {
+              const opAnchorId = getOperationAnchorId(operation, 'operation');
+              const method = String(operation.method || 'get').toLowerCase();
+              const title = operation.summary || operation.id;
+              return '<li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item">' +
+                '<a class="menu__link menu__link--operation" href="#' + escapeHtml(opAnchorId) + '">' +
+                '<span class="menu__link-label">' +
+                '<span class="menu__method-badge ' + escapeHtml(method) + '">' + escapeHtml(method) + '</span>' +
+                '<span class="menu__link-text">' + escapeHtml(title) + '</span>' +
+                '</span>' +
+                '</a>' +
+                '</li>';
+            }).join('') +
+            '</ul>' +
+            '</li>';
+        }).join('');
+      }
+
+      refreshCodeExampleCollections();
+      refreshVariantCollections();
+      bindCodeExampleInteractions();
+      bindVariantInteractions();
+      bindTryItInteractions();
+      refreshNavigationCollections();
+      bindNavigationInteractions();
+    }
+
+    function hydrateWebhooks(renderModel) {
+      const webhooks = renderModel && Array.isArray(renderModel.webhooks) ? renderModel.webhooks : [];
+
+      if (!webhooks.length || !webhooksSection || !webhooksGrid) {
+        return;
+      }
+
+      const groupedByName = webhooks.reduce(function (acc, webhook) {
+        acc[webhook.name] = acc[webhook.name] || [];
+        acc[webhook.name].push(webhook);
+        return acc;
+      }, {});
+      const orderedNames = Object.keys(groupedByName).sort();
+
+      webhooksSection.hidden = false;
+      if (webhooksNavItem) {
+        webhooksNavItem.hidden = false;
+      }
+
+      webhooksGrid.innerHTML = orderedNames.map(function (name) {
+        const hookId = slugify(name);
+        const items = groupedByName[name];
+        return '<section class="webhook-group">' +
+          '<h3 class="anchor" id="webhook-group-' + escapeHtml(hookId) + '">' + escapeHtml(name) +
+          '<a href="#webhook-group-' + escapeHtml(hookId) + '" class="hash-link" aria-label="Direct link to ' + escapeHtml(name) + ' webhook" title="Direct link to ' + escapeHtml(name) + ' webhook" translate="no">\u200b</a>' +
+          '</h3>' +
+          '<p class="webhook-group__path"><strong>Webhook event:</strong> <code>' + escapeHtml(name) + '</code></p>' +
+          '<div class="webhook-group__list">' +
+          items.map(function (webhook) {
+            return renderOperationCard(webhook, {
+              anchorPrefix: 'webhook',
+              renderModel: renderModel,
+              enableTryIt: false,
+              endpointLabel: webhook.name,
+              endpointMeta: { label: 'Webhook key', value: webhook.name }
+            });
+          }).join('') +
+          '</div>' +
+          '</section>';
+      }).join('');
+
+      if (webhooksNavGroup && webhooksNavList) {
+        webhooksNavGroup.hidden = false;
+        webhooksNavList.innerHTML = orderedNames.map(function (name) {
+          const hookId = slugify(name);
+          return '<li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed">' +
+            '<div class="menu__list-item-collapsible">' +
+            '<a class="menu__link menu__link--sublist" href="#webhook-group-' + escapeHtml(hookId) + '">' + escapeHtml(name) + '</a>' +
+            '<button type="button" class="menu__caret" aria-label="Toggle ' + escapeHtml(name) + ' webhook" aria-expanded="false"></button>' +
+            '</div>' +
+            '<ul class="menu__list">' +
+            '<li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item">' +
+            '<a class="menu__link" href="#webhook-group-' + escapeHtml(hookId) + '">Overview</a>' +
+            '</li>' +
+            groupedByName[name].map(function (webhook) {
+              const webhookAnchorId = getOperationAnchorId(webhook, 'webhook');
+              return '<li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item">' +
+                '<a class="menu__link" href="#' + escapeHtml(webhookAnchorId) + '">' + escapeHtml(webhook.summary || webhook.id) + '</a>' +
+                '</li>';
+            }).join('') +
+            '</ul>' +
+            '</li>';
+        }).join('');
+      }
+
+      refreshCodeExampleCollections();
+      refreshVariantCollections();
+      bindCodeExampleInteractions();
+      bindVariantInteractions();
+      bindTryItInteractions();
+      refreshNavigationCollections();
+      bindNavigationInteractions();
+    }
+
+    function hydrateComponents(renderModel) {
+      const groups = renderModel && renderModel.components ? renderModel.components : null;
+      if (!groups || !componentsSection || !componentsGrid) {
+        return;
+      }
+
+      const definitions = [
+        { key: 'schemas', label: 'Schemas', itemKind: 'schema' },
+        { key: 'requestBodies', label: 'Request Bodies', itemKind: 'requestBody' },
+        { key: 'responses', label: 'Responses', itemKind: 'response' },
+        { key: 'parameters', label: 'Parameters', itemKind: 'parameter' },
+        { key: 'headers', label: 'Headers', itemKind: 'header' },
+        { key: 'examples', label: 'Examples', itemKind: 'example' },
+        { key: 'securitySchemes', label: 'Security Schemes', itemKind: 'securityScheme' },
+        { key: 'links', label: 'Links', itemKind: 'link' },
+        { key: 'callbacks', label: 'Callbacks', itemKind: 'callback' }
+      ];
+
+      const activeGroups = definitions.map(function (definition) {
+        return {
+          key: definition.key,
+          label: definition.label,
+          itemKind: definition.itemKind,
+          items: Array.isArray(groups[definition.key]) ? groups[definition.key] : []
+        };
+      }).filter(function (group) {
+        return group.items.length;
+      });
+
+      if (!activeGroups.length) {
+        return;
+      }
+
+      componentsSection.hidden = false;
+      if (componentsNavItem) {
+        componentsNavItem.hidden = false;
+      }
+
+      componentsGrid.innerHTML = activeGroups.map(function (group) {
+        const groupId = slugify(group.key);
+        return '<section class="component-group">' +
+          '<h3 class="anchor" id="components-' + escapeHtml(groupId) + '">' + escapeHtml(group.label) +
+          '<a href="#components-' + escapeHtml(groupId) + '" class="hash-link" aria-label="Direct link to ' + escapeHtml(group.label) + '" title="Direct link to ' + escapeHtml(group.label) + '" translate="no">\u200b</a>' +
+          '</h3>' +
+          '<p class="component-group__meta">' + group.items.length + ' item' + (group.items.length === 1 ? '' : 's') + '</p>' +
+          '<div class="component-group__list">' +
+          group.items.map(function (item) {
+            return renderComponentCard(item, group.itemKind);
+          }).join('') +
+          '</div>' +
+          '</section>';
+      }).join('');
+
+      if (componentsNavGroup && componentsNavList) {
+        componentsNavGroup.hidden = false;
+        componentsNavList.innerHTML = activeGroups.map(function (group) {
+          const groupId = slugify(group.key);
+          return '<li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed">' +
+            '<div class="menu__list-item-collapsible">' +
+            '<a class="menu__link menu__link--sublist" href="#components-' + escapeHtml(groupId) + '">' + escapeHtml(group.label) + '</a>' +
+            '<button type="button" class="menu__caret" aria-label="Toggle ' + escapeHtml(group.label) + '" aria-expanded="false"></button>' +
+            '</div>' +
+            '<ul class="menu__list">' +
+            group.items.map(function (item) {
+              const itemAnchorId = getComponentAnchorId(item, group.itemKind);
+              return '<li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item">' +
+                '<a class="menu__link" href="#' + escapeHtml(itemAnchorId) + '">' + escapeHtml(item.name || item.id) + '</a>' +
+                '</li>';
+            }).join('') +
+            '</ul>' +
+            '</li>';
+        }).join('');
+      }
+
+      refreshNavigationCollections();
+      bindNavigationInteractions();
+    }
+
+    function loadRenderModel() {
+      if (!renderModelUrl) {
+        return Promise.resolve(null);
+      }
+
+      const resolvedUrl = new URL(renderModelUrl, window.location.href).toString();
+      return window.fetch(resolvedUrl)
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error('Failed to load render model');
+          }
+          return response.json();
+        })
+        .then(function (renderModel) {
+          currentRenderModel = renderModel;
+          if (renderModel && Array.isArray(renderModel.servers) && renderModel.servers.length) {
+            knownServerBases = renderModel.servers
+              .map(function (server) { return server.defaultResolvedUrl; })
+              .filter(Boolean);
+          }
+          hydrateOverview(renderModel);
+          hydrateServers(renderModel);
+          hydrateAuthentication(renderModel);
+          hydrateOperations(renderModel);
+          hydrateWebhooks(renderModel);
+          hydrateComponents(renderModel);
+          return renderModel;
+        })
+        .catch(function () {
+          return null;
+        });
+    }
+
+    function closeSidebar() {
+      body.classList.remove('nav-open');
+      sidebar.classList.remove('open');
+      overlay.classList.remove('visible');
+      menuToggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function openSidebar() {
+      body.classList.add('nav-open');
+      sidebar.classList.add('open');
+      overlay.classList.add('visible');
+      menuToggle.setAttribute('aria-expanded', 'true');
+    }
+
+    function syncScrollToTopVisibility() {
+      if (!scrollToTopButton) {
+        return;
+      }
+      scrollToTopButton.hidden = window.scrollY < 240;
+    }
+
+    function expandParentCategories(link) {
+      let parentItem = link.closest('.menu__list-item');
+      while (parentItem) {
+        parentItem.classList.remove('menu__list-item--collapsed');
+        parentItem = parentItem.parentElement ? parentItem.parentElement.closest('.menu__list-item') : null;
+      }
+    }
+
+    function setActiveLinkByHash(hash, options) {
+      const opts = options || {};
+      const normalizedHash = normalizeHash(hash);
+      if (!normalizedHash || !linkByHash[normalizedHash]) {
+        return;
+      }
+      if (activeHash === normalizedHash && !opts.force) {
+        return;
+      }
+
+      activeHash = normalizedHash;
+      const sectionHash = getSectionHash(normalizedHash);
+      navLinks.forEach(function (item) {
+        const itemHash = item.getAttribute('href');
+        const isActive = itemHash === normalizedHash || (sectionHash && itemHash === sectionHash);
+        item.classList.toggle('menu__link--active', isActive);
+        if (isActive) {
+          item.setAttribute('aria-current', itemHash === normalizedHash ? 'location' : 'true');
+        } else {
+          item.removeAttribute('aria-current');
+        }
+      });
+      expandParentCategories(linkByHash[normalizedHash]);
+      if (!opts.skipSidebarScroll) {
+        linkByHash[normalizedHash].scrollIntoView({block: 'nearest'});
+      }
+    }
+
+    function isHeadingVisible(heading) {
+      if (!heading || !heading.getClientRects || !heading.getClientRects().length) {
+        return false;
+      }
+
+      let current = heading;
+      while (current && current !== document.body) {
+        if (current.hidden) {
+          return false;
+        }
+        current = current.parentElement;
+      }
+
+      return true;
+    }
+
+    function getActiveHashFromScroll() {
+      const visibleHeadings = headings.filter(isHeadingVisible);
+      if (!visibleHeadings.length) {
+        return null;
+      }
+
+      const threshold = 120;
+      let candidate = '#' + visibleHeadings[0].id;
+
+      visibleHeadings.forEach(function (heading) {
+        const top = heading.getBoundingClientRect().top;
+        if (top - threshold <= 0) {
+          candidate = '#' + heading.id;
+        }
+      });
+
+      return candidate;
+    }
+
+    function setCodeTab(group, tabId) {
+      const tabs = Array.from(group.querySelectorAll('[data-code-tab]'));
+      const panes = Array.from(group.querySelectorAll('[data-code-pane]'));
+
+      tabs.forEach(function (tab) {
+        const isActive = tab.getAttribute('data-code-tab') === tabId;
+        tab.classList.toggle('is-active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+
+      panes.forEach(function (pane) {
+        const isActive = pane.getAttribute('data-code-pane') === tabId;
+        pane.classList.toggle('is-active', isActive);
+        pane.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+      });
+    }
+
+    function getPreferredLanguage() {
+      try {
+        const value = window.localStorage.getItem(languageStorageKey);
+        return value || defaultLanguage;
+      } catch (error) {
+        return defaultLanguage;
+      }
+    }
+
+    function setPreferredLanguage(value) {
+      try {
+        window.localStorage.setItem(languageStorageKey, value);
+      } catch (error) {
+        // ignore storage failures
+      }
+    }
+
+    function getAvailableTabs(group) {
+      return Array.from(group.querySelectorAll('[data-code-tab]')).map(function (tab) {
+        return tab.getAttribute('data-code-tab');
+      });
+    }
+
+    function resolveGroupLanguage(group, preferredLanguage) {
+      const availableTabs = getAvailableTabs(group);
+      if (!availableTabs.length) {
+        return null;
+      }
+      if (availableTabs.indexOf(preferredLanguage) !== -1) {
+        return preferredLanguage;
+      }
+      if (availableTabs.indexOf(defaultLanguage) !== -1) {
+        return defaultLanguage;
+      }
+      return availableTabs[0];
+    }
+
+    function applyLanguageToAllGroups(language) {
+      if (!language) {
+        return;
+      }
+      document.documentElement.setAttribute('data-code-language', language);
+      languageTabGroups.forEach(function (group) {
+        const resolved = resolveGroupLanguage(group, language);
+        if (resolved) {
+          setCodeTab(group, resolved);
+        }
+      });
+    }
+
+    function syncPreferredLanguage(language) {
+      if (!language) {
+        return;
+      }
+      setPreferredLanguage(language);
+      applyLanguageToAllGroups(language);
+    }
+
+    function refreshCodeExampleCollections() {
+      tabGroups = Array.from(document.querySelectorAll('[data-code-tabs]'));
+      languageTabGroups = tabGroups.filter(function (group) {
+        return group.getAttribute('data-code-sync') === 'language';
+      });
+      copyButtons = Array.from(document.querySelectorAll('[data-copy-example]'));
+    }
+
+    function bindCodeExampleInteractions() {
+      tabGroups.forEach(function (group) {
+        const isLanguageGroup = group.getAttribute('data-code-sync') === 'language';
+        const firstTab = group.querySelector('[data-code-tab]');
+        if (!group.__kairosInitialized && !isLanguageGroup && firstTab) {
+          setCodeTab(group, firstTab.getAttribute('data-code-tab'));
+        }
+        group.__kairosInitialized = true;
+
+        group.querySelectorAll('[data-code-tab]').forEach(function (tab) {
+          if (tab.__kairosBound) {
+            return;
+          }
+          tab.__kairosBound = true;
+          tab.addEventListener('click', function () {
+            const selectedTab = tab.getAttribute('data-code-tab');
+            if (isLanguageGroup) {
+              syncPreferredLanguage(selectedTab);
+              return;
+            }
+            setCodeTab(group, selectedTab);
+          });
+        });
+      });
+
+      applyLanguageToAllGroups(getPreferredLanguage());
+
+      copyButtons.forEach(function (button) {
+        if (button.__kairosBound) {
+          return;
+        }
+        button.__kairosBound = true;
+        button.addEventListener('click', function () {
+          const text = getPanelCopyText(button);
+          if (!text) {
+            return;
+          }
+
+          writeClipboardText(text).then(function () {
+            button.classList.add('is-copied');
+            button.textContent = 'Copied';
+            window.setTimeout(function () {
+              button.classList.remove('is-copied');
+              button.textContent = 'Copy';
+            }, 1200);
+          }).catch(function () {
+            button.textContent = 'Failed';
+            window.setTimeout(function () {
+              button.textContent = 'Copy';
+            }, 1200);
+          });
+        });
+      });
+    }
+
+    function bindVariantInteractions() {
+      variantGroups.forEach(function (group) {
+        group.querySelectorAll('[data-variant-button]').forEach(function (button) {
+          if (button.__kairosBound) {
+            return;
+          }
+          button.__kairosBound = true;
+          button.addEventListener('click', function () {
+            const variantId = button.getAttribute('data-variant-button');
+            const parent = group.parentElement;
+            if (!parent) {
+              return;
+            }
+            Array.from(group.querySelectorAll('[data-variant-button]')).forEach(function (item) {
+              const isActive = item === button;
+              item.classList.toggle('is-active', isActive);
+              item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+            Array.from(parent.querySelectorAll(':scope > [data-variant-pane]')).forEach(function (pane) {
+              const isActive = pane.getAttribute('data-variant-pane') === variantId;
+              pane.classList.toggle('is-active', isActive);
+              pane.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+            });
+            applyLanguageToAllGroups(getPreferredLanguage());
+            const tryItPanel = parent.querySelector('[data-try-it-panel]');
+            if (tryItPanel) {
+              updateTryItPreview(tryItPanel);
+            }
+          });
+        });
+      });
+    }
+
+    function getPanelCopyText(button) {
+      const panel = button.closest('.example-panel');
+      if (!panel) {
+        return '';
+      }
+
+      const activePanes = Array.from(panel.querySelectorAll('.code-pane.is-active'));
+      const visibleActivePane = activePanes.find(function (pane) {
+        return !pane.closest('[data-variant-pane]') || pane.closest('[data-variant-pane]').classList.contains('is-active');
+      });
+      if (visibleActivePane) {
+        const activeCode = visibleActivePane.querySelector('code');
+        return activeCode ? (activeCode.textContent || '') : '';
+      }
+
+      const visibleVariantPane = panel.querySelector('[data-variant-pane].is-active');
+      if (visibleVariantPane) {
+        const visibleVariantCode = visibleVariantPane.querySelector('pre code');
+        if (visibleVariantCode) {
+          return visibleVariantCode.textContent || '';
+        }
+      }
+
+      const plainCode = panel.querySelector(':scope > pre code, pre code');
+      if (plainCode) {
+        return plainCode.textContent || '';
+      }
+
+      return '';
+    }
+
+    function writeClipboardText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+
+      return new Promise(function (resolve, reject) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          const ok = document.execCommand('copy');
+          document.body.removeChild(textarea);
+          if (ok) {
+            resolve();
+          } else {
+            reject(new Error('Copy command failed'));
+          }
+        } catch (error) {
+          document.body.removeChild(textarea);
+          reject(error);
+        }
+      });
+    }
+
+    function findOperationById(operationId) {
+      if (!currentRenderModel || !Array.isArray(currentRenderModel.operations)) {
+        return null;
+      }
+
+      return currentRenderModel.operations.find(function (operation) {
+        return operation.id === operationId;
+      }) || null;
+    }
+
+    function getActiveRequestVariant(operationCard, operation) {
+      const requestVariants = operation && operation.examples && operation.examples.request && operation.examples.request.length
+        ? operation.examples.request
+        : [{ id: 'default', summary: null, value: undefined }];
+
+      const activePane = operationCard.querySelector('[data-variant-pane].is-active');
+      if (!activePane) {
+        return requestVariants[0];
+      }
+
+      const activeVariantId = activePane.getAttribute('data-variant-pane');
+      return requestVariants.find(function (variant, index) {
+        return (variant.id || String(index)) === activeVariantId;
+      }) || requestVariants[0];
+    }
+
+    function setTryItState(panel, statusText, options) {
+      const opts = options || {};
+      const status = panel.querySelector('[data-try-it-status]');
+      const response = panel.querySelector('[data-try-it-response]');
+      const responseStatus = panel.querySelector('[data-try-it-response-status]');
+      const responseTiming = panel.querySelector('[data-try-it-response-timing]');
+      const responseHeaders = panel.querySelector('[data-try-it-response-headers]');
+      const responseBody = panel.querySelector('[data-try-it-response-body]');
+
+      if (status) {
+        status.textContent = statusText;
+        status.dataset.state = opts.state || 'idle';
+      }
+
+      if (!response || !responseStatus || !responseTiming || !responseHeaders || !responseBody) {
+        return;
+      }
+
+      if (opts.responseMeta || opts.responseBodyText || opts.responseHeadersText) {
+        response.hidden = false;
+        responseStatus.textContent = opts.responseMeta && opts.responseMeta.status ? opts.responseMeta.status : '-';
+        responseTiming.textContent = opts.responseMeta && opts.responseMeta.timing ? opts.responseMeta.timing : '-';
+        responseHeaders.textContent = opts.responseHeadersText || '(no response headers)';
+        responseBody.textContent = opts.responseBodyText || '(empty response body)';
+      } else {
+        response.hidden = true;
+        responseStatus.textContent = 'Ready';
+        responseTiming.textContent = '-';
+        responseHeaders.textContent = '';
+        responseBody.textContent = '';
+      }
+    }
+
+    function formatResponseHeaders(headers) {
+      const entries = [];
+      headers.forEach(function (value, key) {
+        entries.push(key + ': ' + value);
+      });
+      return entries.length ? entries.join('\n') : '(no response headers)';
+    }
+
+    function formatResponseBody(text, contentType) {
+      if (!text) {
+        return '(empty response body)';
+      }
+
+      if (contentType && contentType.indexOf('application/json') !== -1) {
+        try {
+          return JSON.stringify(JSON.parse(text), null, 2);
+        } catch (error) {
+          return text;
+        }
+      }
+
+      return text;
+    }
+
+    function classifyTryItFailure(error, requestData) {
+      const requestUrl = requestData && requestData.url ? new URL(requestData.url, window.location.href) : null;
+      const pageOrigin = window.location.origin;
+      const isCrossOrigin = requestUrl ? requestUrl.origin !== pageOrigin : true;
+      const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+      const message = error && error.message ? error.message : '';
+
+      if (isOffline) {
+        return {
+          summary: 'Request failed because the browser appears to be offline.',
+          detail: 'Check your network connection and try again.',
+          status: 'Offline'
+        };
+      }
+
+      if (error && error.name === 'TypeError' && isCrossOrigin) {
+        return {
+          summary: 'Request failed before a response was received. This usually means the target API blocked the browser request.',
+          detail: 'The most common cause is missing or restrictive CORS headers on the target server.',
+          status: 'CORS / Network blocked'
+        };
+      }
+
+      if (error && error.name === 'TypeError') {
+        return {
+          summary: 'Request failed before a response was received.',
+          detail: 'The browser could not complete the request. This can be caused by DNS, TLS, ad blockers, local network rules, or browser security policies.',
+          status: 'Network failure'
+        };
+      }
+
+      return {
+        summary: 'Request failed before a response was received.',
+        detail: message || 'Unexpected browser request failure.',
+        status: 'Request failure'
+      };
+    }
+
+    function stripUnsafeControlChars(value) {
+      return String(value == null ? '' : value).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+    }
+
+    function sanitizePathValue(value) {
+      return stripUnsafeControlChars(value).replace(/[\r\n]/g, '');
+    }
+
+    function sanitizeQueryValue(value) {
+      return stripUnsafeControlChars(value).replace(/[\r\n]/g, '');
+    }
+
+    function sanitizeHeaderName(name) {
+      const normalized = stripUnsafeControlChars(name).trim();
+      if (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(normalized)) {
+        throw new Error('Invalid header name: ' + name);
+      }
+      return normalized;
+    }
+
+    function sanitizeHeaderValue(value) {
+      return stripUnsafeControlChars(value).replace(/[\r\n]+/g, ' ').trim();
+    }
+
+    function sanitizeCookiePair(name, value) {
+      const safeName = stripUnsafeControlChars(name).replace(/[=\s;\r\n]/g, '');
+      const safeValue = stripUnsafeControlChars(value).replace(/[;\r\n]/g, '');
+      if (!safeName) {
+        throw new Error('Invalid cookie name.');
+      }
+      return safeName + '=' + safeValue;
+    }
+
+    function buildTryItFetchOptions(requestData) {
+      const headers = requestData.headers.reduce(function (acc, header) {
+        const safeHeaderName = sanitizeHeaderName(header.name);
+        const safeHeaderValue = sanitizeHeaderValue(header.value);
+        if (safeHeaderName.toLowerCase() === 'cookie') {
+          return acc;
+        }
+        if (requestData.mediaType && requestData.mediaType.indexOf('multipart/form-data') === 0 && safeHeaderName.toLowerCase() === 'content-type') {
+          return acc;
+        }
+        acc[safeHeaderName] = safeHeaderValue;
+        return acc;
+      }, {});
+
+      const options = {
+        method: requestData.method,
+        headers: headers,
+        mode: 'cors'
+      };
+
+      if (requestData.body !== null) {
+        const contentType = requestData.mediaType || headers['Content-Type'] || headers['content-type'] || '';
+        if (requestData.body instanceof window.FormData) {
+          options.body = requestData.body;
+        } else if (contentType.indexOf('multipart/form-data') !== -1) {
+          throw new Error('Multipart request data is invalid.');
+        } else {
+          options.body = JSON.stringify(requestData.body);
+        }
+      }
+
+      return options;
+    }
+
+    function buildTryItRequestData(panel, operationCard, operation) {
+      const requestVariant = getActiveRequestVariant(operationCard, operation);
+      const requestData = buildRequestExampleData(currentRenderModel, operation, requestVariant);
+      let url = new URL(requestData.url);
+      let customPath = operation.path || url.pathname;
+
+      Array.from(panel.querySelectorAll('[data-try-it-param]')).forEach(function (input) {
+        const token = input.getAttribute('data-try-it-param') || '';
+        const parts = token.split(':');
+        const location = parts[0];
+        const name = parts.slice(1).join(':');
+        const value = input.type === 'file' ? (input.files && input.files[0] ? input.files[0] : null) : input.value;
+
+        if (location === 'path') {
+          customPath = customPath.replace(new RegExp('\\{' + name + '\\}', 'g'), encodeURIComponent(sanitizePathValue(value)));
+          return;
+        }
+
+        if (location === 'query') {
+          if (value === '') {
+            url.searchParams.delete(name);
+          } else {
+            url.searchParams.set(name, sanitizeQueryValue(value));
+          }
+          return;
+        }
+
+        if (location === 'header') {
+          const safeHeaderName = sanitizeHeaderName(name);
+          const safeHeaderValue = sanitizeHeaderValue(value);
+          const existingHeader = requestData.headers.find(function (header) {
+            return header.name.toLowerCase() === safeHeaderName.toLowerCase();
+          });
+          if (existingHeader) {
+            existingHeader.name = safeHeaderName;
+            existingHeader.value = safeHeaderValue;
+          } else if (value !== '') {
+            requestData.headers.push({ name: safeHeaderName, value: safeHeaderValue });
+          }
+          return;
+        }
+
+        if (location === 'cookie') {
+          const cookieValue = sanitizeCookiePair(name, value);
+          const existingCookie = requestData.headers.find(function (header) {
+            return header.name.toLowerCase() === 'cookie' && String(header.value).indexOf(name + '=') === 0;
+          });
+          if (existingCookie) {
+            existingCookie.value = cookieValue;
+          } else if (value !== '') {
+            requestData.headers.push({ name: 'Cookie', value: cookieValue });
+          }
+        }
+      });
+
+      url = new URL(url.origin + customPath + url.search);
+
+      const multipartFields = Array.from(panel.querySelectorAll('[data-try-it-param^="multipart:"]'));
+      if (multipartFields.length) {
+        const formData = new window.FormData();
+        multipartFields.forEach(function (input) {
+          const token = input.getAttribute('data-try-it-param') || '';
+          const fieldName = token.slice('multipart:'.length);
+          const required = input.getAttribute('data-try-it-required') === 'true';
+
+          if (input.type === 'file') {
+            const file = input.files && input.files[0] ? input.files[0] : null;
+            if (!file) {
+              if (required) {
+                throw new Error('Please choose a file for ' + fieldName + '.');
+              }
+              return;
+            }
+            formData.append(fieldName, file);
+            return;
+          }
+
+          const rawValue = input.value.trim();
+          if (!rawValue) {
+            if (required) {
+              throw new Error('Please provide a value for ' + fieldName + '.');
+            }
+            return;
+          }
+
+          if (input.tagName === 'TEXTAREA') {
+            try {
+              JSON.parse(stripUnsafeControlChars(rawValue));
+            } catch (error) {
+              throw new Error(fieldName + ' must be valid JSON.');
+            }
+          }
+
+          formData.append(fieldName, stripUnsafeControlChars(rawValue));
+        });
+        requestData.body = formData;
+      }
+
+      const bodyInput = panel.querySelector('[data-try-it-body]');
+      if (bodyInput) {
+        const rawBody = stripUnsafeControlChars(bodyInput.value).trim();
+        if (!rawBody) {
+          requestData.body = null;
+        } else {
+          try {
+            requestData.body = JSON.parse(rawBody);
+          } catch (error) {
+            throw new Error('Request body must be valid JSON.');
+          }
+        }
+      }
+
+      requestData.url = url.toString();
+      return requestData;
+    }
+
+    function formatTryItPreview(requestData) {
+      const lines = [requestData.method + ' ' + requestData.url];
+      if (requestData.headers && requestData.headers.length) {
+        lines.push('', 'Headers:');
+        requestData.headers.forEach(function (header) {
+          lines.push(header.name + ': ' + String(header.value));
+        });
+      }
+
+      if (requestData.body instanceof window.FormData) {
+        lines.push('', 'Body:');
+        requestData.body.forEach(function (value, key) {
+          if (value instanceof window.File) {
+            lines.push(key + ': [File ' + value.name + ']');
+          } else {
+            lines.push(key + ': ' + String(value));
+          }
+        });
+      } else if (requestData.body !== null) {
+        lines.push('', 'Body:');
+        lines.push(JSON.stringify(requestData.body, null, 2));
+      }
+
+      return lines.join('\n');
+    }
+
+    function updateTryItPreview(panel) {
+      const preview = panel.querySelector('[data-try-it-preview] code');
+      const operationId = panel.getAttribute('data-operation-id');
+      const operationCard = panel.closest('.operation-card');
+      const operation = findOperationById(operationId);
+
+      if (!preview || !operation || !operationCard) {
+        return;
+      }
+
+      try {
+        const requestData = buildTryItRequestData(panel, operationCard, operation);
+        preview.textContent = formatTryItPreview(requestData);
+      } catch (error) {
+        preview.textContent = error && error.message ? error.message : 'Request preview unavailable.';
+      }
+    }
+
+    function updateAllTryItPreviews() {
+      Array.from(document.querySelectorAll('[data-try-it-panel]')).forEach(function (panel) {
+        updateTryItPreview(panel);
+      });
+    }
+
+    function resetTryItPanel(panel) {
+      const operationId = panel.getAttribute('data-operation-id');
+      const operation = findOperationById(operationId);
+      if (!operation) {
+        return;
+      }
+
+      Array.from(panel.querySelectorAll('[data-try-it-param]')).forEach(function (input) {
+        const token = input.getAttribute('data-try-it-param') || '';
+        if (token.indexOf('multipart:') === 0) {
+          const fieldName = token.slice('multipart:'.length);
+          const requestBody = operation.requestBody && operation.requestBody.content && operation.requestBody.content.length
+            ? operation.requestBody.content[0]
+            : null;
+          const requestBodyExample = getRequestBodyExample(operation.requestBody);
+          const exampleValue = requestBodyExample && requestBodyExample.value && typeof requestBodyExample.value === 'object'
+            ? requestBodyExample.value[fieldName]
+            : undefined;
+          const propertySchema = requestBody && requestBody.schema && requestBody.schema.properties
+            ? requestBody.schema.properties[fieldName]
+            : null;
+
+          if (input.type === 'file') {
+            input.value = '';
+          } else if (input.tagName === 'TEXTAREA') {
+            input.value = JSON.stringify(exampleValue !== undefined ? exampleValue : getSchemaDerivedExample(propertySchema), null, 2);
+          } else {
+            input.value = String(exampleValue !== undefined ? exampleValue : getScalarExample(propertySchema, fieldName) || '');
+          }
+          return;
+        }
+
+        const parts = token.split(':');
+        const location = parts[0];
+        const name = parts.slice(1).join(':');
+        const parameterGroup = operation.parameters && operation.parameters[location] ? operation.parameters[location] : [];
+        const parameter = parameterGroup.find(function (item) {
+          return item.name === name;
+        });
+
+        if (input.type === 'file') {
+          input.value = '';
+        } else {
+          input.value = parameter ? String(getParameterExample(parameter) || '') : '';
+        }
+      });
+
+      const bodyInput = panel.querySelector('[data-try-it-body]');
+      if (bodyInput) {
+        const requestBodyExample = getRequestBodyExample(operation.requestBody);
+        bodyInput.value = requestBodyExample ? JSON.stringify(requestBodyExample.value, null, 2) : '';
+      }
+
+      updateTryItPreview(panel);
+      setTryItState(panel, 'Ready to send.', { state: 'idle' });
+    }
+
+    function bindTryItInteractions() {
+      updateAllTryItPreviews();
+
+      Array.from(document.querySelectorAll('[data-try-it-panel] [data-try-it-param], [data-try-it-panel] [data-try-it-body]')).forEach(function (input) {
+        if (input.__kairosPreviewBound) {
+          return;
+        }
+        input.__kairosPreviewBound = true;
+        input.addEventListener('input', function () {
+          const panel = input.closest('[data-try-it-panel]');
+          if (panel) {
+            updateTryItPreview(panel);
+          }
+        });
+        input.addEventListener('change', function () {
+          const panel = input.closest('[data-try-it-panel]');
+          if (panel) {
+            updateTryItPreview(panel);
+          }
+        });
+      });
+
+      Array.from(document.querySelectorAll('[data-try-it-send]')).forEach(function (button) {
+        if (button.__kairosBound) {
+          return;
+        }
+
+        button.__kairosBound = true;
+        button.addEventListener('click', function () {
+          const panel = button.closest('[data-try-it-panel]');
+          if (!panel) {
+            return;
+          }
+
+          const operationId = panel.getAttribute('data-operation-id');
+          const operationCard = button.closest('.operation-card');
+          const operation = findOperationById(operationId);
+          if (!operation || !operationCard) {
+            return;
+          }
+
+          setTryItState(panel, 'Sending request...', { state: 'pending' });
+          button.disabled = true;
+
+          let requestData;
+          try {
+            requestData = buildTryItRequestData(panel, operationCard, operation);
+          } catch (error) {
+            setTryItState(panel, error.message || 'Request cannot be prepared.', { state: 'error' });
+            button.disabled = false;
+            return;
+          }
+
+          let requestOptions;
+          try {
+            requestOptions = buildTryItFetchOptions(requestData);
+          } catch (error) {
+            setTryItState(panel, error.message || 'Request cannot be sent yet.', { state: 'error' });
+            button.disabled = false;
+            return;
+          }
+
+          const startedAt = window.performance && typeof window.performance.now === 'function'
+            ? window.performance.now()
+            : Date.now();
+
+          window.fetch(requestData.url, requestOptions)
+            .then(function (response) {
+              return response.text().then(function (text) {
+                const finishedAt = window.performance && typeof window.performance.now === 'function'
+                  ? window.performance.now()
+                  : Date.now();
+                const duration = Math.max(0, Math.round(finishedAt - startedAt));
+                const contentType = response.headers.get('content-type') || '';
+                setTryItState(
+                  panel,
+                  response.status + ' ' + response.statusText + ' in ' + duration + ' ms',
+                  {
+                    state: response.ok ? 'success' : 'error',
+                    responseMeta: {
+                      status: response.status + ' ' + response.statusText,
+                      timing: duration + ' ms'
+                    },
+                    responseHeadersText: formatResponseHeaders(response.headers),
+                    responseBodyText: formatResponseBody(text, contentType)
+                  }
+                );
+              });
+            })
+            .catch(function (error) {
+              const failure = classifyTryItFailure(error, requestData);
+              setTryItState(
+                panel,
+                failure.summary,
+                {
+                  state: 'error',
+                  responseMeta: {
+                    status: failure.status,
+                    timing: '-'
+                  },
+                  responseHeadersText: '(no response headers)',
+                  responseBodyText: failure.detail
+                }
+              );
+            })
+            .finally(function () {
+              button.disabled = false;
+            });
+        });
+      });
+
+      Array.from(document.querySelectorAll('[data-try-it-reset]')).forEach(function (button) {
+        if (button.__kairosBound) {
+          return;
+        }
+
+        button.__kairosBound = true;
+        button.addEventListener('click', function () {
+          const panel = button.closest('[data-try-it-panel]');
+          if (!panel) {
+            return;
+          }
+          resetTryItPanel(panel);
+        });
+      });
+    }
+
+    function normalizeServerPath(pathname) {
+      if (!pathname || pathname === '/') {
+        return '';
+      }
+      return pathname.replace(/\/+$/, '');
+    }
+
+    function resolveServerUrl(template, values) {
+      return template.replace(/\{([^}]+)\}/g, function (_, name) {
+        return Object.prototype.hasOwnProperty.call(values, name) ? values[name] : '';
+      });
+    }
+
+    function getServerCard(url) {
+      return serverCards.find(function (card) {
+        return card.getAttribute('data-server-option') === url;
+      }) || null;
+    }
+
+    function getServerVariableValues(card) {
+      return Array.from(card.querySelectorAll('[data-server-variable]')).reduce(function (acc, input) {
+        acc[input.getAttribute('data-server-variable-name')] = input.value;
+        return acc;
+      }, {});
+    }
+
+    function joinServerUrl(baseUrl, suffix) {
+      const parsed = new URL(baseUrl);
+      const basePath = normalizeServerPath(parsed.pathname);
+      const parts = (suffix || '/').match(/^([^?#]*)(.*)$/) || ['', '/', ''];
+      let suffixPath = parts[1] || '/';
+      const trailing = parts[2] || '';
+
+      if (basePath && suffixPath === basePath) {
+        suffixPath = '/';
+      } else if (basePath && suffixPath.indexOf(basePath + '/') === 0) {
+        suffixPath = suffixPath.slice(basePath.length);
+      }
+
+      if (!suffixPath) {
+        suffixPath = '/';
+      }
+      if (suffixPath.charAt(0) !== '/') {
+        suffixPath = '/' + suffixPath;
+      }
+
+      return parsed.origin + (basePath + suffixPath).replace(/\/{2,}/g, '/') + trailing;
+    }
+
+    function replaceServerAwareUrls(text, resolvedUrl) {
+      return text.replace(/https?:\/\/[^\s'"<>()]+/g, function (url) {
+        const matchedBase = knownServerBases.find(function (base) {
+          return url.indexOf(base) === 0;
+        });
+
+        if (!matchedBase) {
+          return url;
+        }
+
+        return joinServerUrl(resolvedUrl, url.slice(matchedBase.length) || '/');
+      });
+    }
+
+    function updateServerAwareExamples(resolvedUrl) {
+      Array.from(document.querySelectorAll('[data-example-base-url] pre code, main pre code')).forEach(function (block) {
+        if (!block.__originalText) {
+          block.__originalText = block.textContent || '';
+        }
+        block.textContent = replaceServerAwareUrls(block.__originalText, resolvedUrl);
+      });
+    }
+
+    function readServerState() {
+      if (!serverSelect || !serverCards.length) {
+        return null;
+      }
+
+      const selectedServerId = serverSelect.value || serverCards[0].getAttribute('data-server-option');
+      const activeCard = getServerCard(selectedServerId) || serverCards[0];
+      const values = getServerVariableValues(activeCard);
+
+      return {
+        selectedServerId: activeCard.getAttribute('data-server-option'),
+        values: values,
+        resolvedUrl: resolveServerUrl(activeCard.getAttribute('data-server-template'), values)
+      };
+    }
+
+    function persistServerState(state) {
+      try {
+        window.localStorage.setItem(serverStorageKey, JSON.stringify({
+          selectedServerId: state.selectedServerId,
+          values: state.values
+        }));
+      } catch (error) {
+        // ignore storage failures
+      }
+    }
+
+    function applyServerState(options) {
+      const opts = options || {};
+      const state = readServerState();
+
+      if (!state) {
+        return;
+      }
+
+      serverCards.forEach(function (card) {
+        const isActive = card.getAttribute('data-server-option') === state.selectedServerId;
+        const values = getServerVariableValues(card);
+        const preview = card.querySelector('[data-server-resolved]');
+        card.classList.toggle('is-active', isActive);
+
+        if (preview) {
+          preview.textContent = resolveServerUrl(card.getAttribute('data-server-template'), values);
+        }
+      });
+
+      if (serverSummary) {
+        serverSummary.textContent = state.resolvedUrl;
+      }
+
+      updateServerAwareExamples(state.resolvedUrl);
+      updateAllTryItPreviews();
+
+      if (!opts.skipPersistence) {
+        persistServerState(state);
+      }
+    }
+
+    function restoreServerState() {
+      if (!serverSelect || !serverCards.length) {
+        return;
+      }
+
+      serverCards.forEach(function (card) {
+        Array.from(card.querySelectorAll('[data-server-variable]')).forEach(function (input) {
+          const defaultValue = input.getAttribute('data-server-default-value');
+          if (defaultValue !== null) {
+            input.value = defaultValue;
+          }
+        });
+      });
+
+      let stored = null;
+
+      try {
+        stored = JSON.parse(window.localStorage.getItem(serverStorageKey) || 'null');
+      } catch (error) {
+        stored = null;
+      }
+
+      if (stored && getServerCard(stored.selectedServerId)) {
+        serverSelect.value = stored.selectedServerId;
+        Array.from(getServerCard(stored.selectedServerId).querySelectorAll('[data-server-variable]')).forEach(function (input) {
+          const variableName = input.getAttribute('data-server-variable-name');
+          if (Object.prototype.hasOwnProperty.call(stored.values || {}, variableName)) {
+            input.value = stored.values[variableName];
+          }
+        });
+      }
+
+      applyServerState({skipPersistence: true});
+    }
+
+    function bindServerInteractions() {
+      if (serverSelect && !serverSelect.__kairosBound) {
+        serverSelect.__kairosBound = true;
+        serverSelect.addEventListener('change', function () {
+          applyServerState();
+        });
+      }
+
+      serverCards.forEach(function (card) {
+        Array.from(card.querySelectorAll('[data-server-variable]')).forEach(function (input) {
+          if (input.__kairosBound) {
+            return;
+          }
+          input.__kairosBound = true;
+          input.addEventListener('change', function () {
+            applyServerState();
+          });
+          input.addEventListener('input', function () {
+            applyServerState();
+          });
+        });
+      });
+    }
+
+    function renderMarkdownLinks() {
+      Array.from(document.querySelectorAll('[data-render-md-links]')).forEach(function (element) {
+        const source = element.innerHTML;
+        if (!source) {
+          return;
+        }
+
+        const codeBlocks = [];
+        const withCodeBlocks = source.replace(/```([a-zA-Z0-9_-]+)?\n?([\s\S]*?)```/g, function (_, language, code) {
+          const blockClass = language ? ' class="language-' + escapeHtml(language) + '"' : '';
+          const html = '<pre><code' + blockClass + '>' + escapeHtml(code.trim()) + '</code></pre>';
+          const token = '__CODE_BLOCK_' + codeBlocks.length + '__';
+          codeBlocks.push(html);
+          return token;
+        });
+
+        const withLinks = withCodeBlocks.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (_, label, href) {
+          const isExternal = /^https?:\/\//i.test(href);
+          if (isExternal) {
+            return '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
+          }
+          return '<a href="' + href + '">' + label + '</a>';
+        });
+
+        const withInlineCode = withLinks.replace(/`([^`\n]+)`/g, function (_, inlineCode) {
+          return '<code>' + escapeHtml(inlineCode) + '</code>';
+        });
+
+        const rendered = withInlineCode.replace(/__CODE_BLOCK_(\d+)__/g, function (_, index) {
+          const block = codeBlocks[Number(index)];
+          return block || '';
+        });
+
+        element.innerHTML = rendered;
+      });
+    }
+
+    function clearSensitiveRuntimeState() {
+      authState = {};
+
+      Array.from(document.querySelectorAll('[data-auth-input]')).forEach(function (input) {
+        if (input.tagName === 'SELECT') {
+          input.selectedIndex = 0;
+          return;
+        }
+        input.value = '';
+      });
+
+      Array.from(document.querySelectorAll('[data-try-it-panel]')).forEach(function (panel) {
+        Array.from(panel.querySelectorAll('[data-try-it-param], [data-try-it-body]')).forEach(function (input) {
+          if (input.type === 'file') {
+            input.value = '';
+            return;
+          }
+          input.value = '';
+        });
+        updateTryItPreview(panel);
+        setTryItState(panel, 'Ready to send.', { state: 'idle' });
+      });
+    }
+
+    menuToggle.addEventListener('click', function () {
+      const isOpen = sidebar.classList.contains('open');
+      if (isOpen) {
+        closeSidebar();
+        return;
+      }
+      openSidebar();
+    });
+
+    overlay.addEventListener('click', closeSidebar);
+
+    refreshNavigationCollections();
+    bindNavigationInteractions();
+
+    refreshCodeExampleCollections();
+    refreshVariantCollections();
+    bindCodeExampleInteractions();
+    bindVariantInteractions();
+    syncScrollToTopVisibility();
+
+    renderMarkdownLinks();
+
+    if (scrollToTopButton) {
+      scrollToTopButton.addEventListener('click', function () {
+        navigateToHash('#overview');
+      });
+    }
+
+    window.addEventListener('pagehide', clearSensitiveRuntimeState);
+
+    window.addEventListener('hashchange', function () {
+      const nextHash = normalizeHash(window.location.hash);
+      navigateToHash(nextHash, {
+        skipDocumentHash: true,
+        skipSidebarScroll: false
+      });
+    });
+
+    window.addEventListener('scroll', function () {
+      if (scrollTicking) {
+        return;
+      }
+      scrollTicking = true;
+      window.requestAnimationFrame(function () {
+        syncScrollToTopVisibility();
+        const hash = getActiveHashFromScroll();
+        navigateToHash(hash, {
+          skipScroll: true,
+          skipSidebarScroll: true,
+          replaceHistory: true
+        });
+        scrollTicking = false;
+      });
+    }, {passive: true});
+
+    function syncNavigationStateAfterHydration() {
+      const startupHash = normalizeHash(window.location.hash);
+      if (startupHash && linkByHash[startupHash]) {
+        navigateToHash(startupHash, {
+          skipDocumentHash: true
+        });
+        return;
+      }
+
+      const initialScrollHash = getActiveHashFromScroll();
+      if (initialScrollHash) {
+        navigateToHash(initialScrollHash, {
+          skipScroll: true,
+          skipSidebarScroll: true,
+          replaceHistory: true
+        });
+      } else if (navLinks.length) {
+        const firstHash = navLinks[0].getAttribute('href');
+        navigateToHash(firstHash, {
+          skipScroll: true,
+          skipSidebarScroll: true,
+          replaceHistory: true
+        });
+      }
+    }
+
+    loadRenderModel().then(function () {
+      refreshNavigationCollections();
+      bindNavigationInteractions();
+      syncTryItShellsForViewport();
+      syncNavigationStateAfterHydration();
+    });
+
+    window.addEventListener('resize', function () {
+      syncTryItShellsForViewport();
+    }, {passive: true});
+  }());
+</script>

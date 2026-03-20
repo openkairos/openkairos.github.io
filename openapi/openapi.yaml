@@ -1,20 +1,177 @@
-openapi: 3.0.3
+openapi: 3.1.0
+jsonSchemaDialect: https://spec.openapis.org/oas/3.1/dialect/base
 info:
-  title: Kairos API
+  title: Kairos
+  summary: Kairos REST API documentation.
+  description: Kairos is a customer data platform that helps businesses unify and activate their customer data for better marketing and customer experience. This API allows you to interact with Kairos to manage your customer data and leverage its features.
+  license:
+    name: GPL-3.0 license
+    url: https://github.com/openkairos/kairos?tab=GPL-3.0-1-ov-file
   version: 1.0.0
-  description: Kairos API Specifications.
 servers:
-  - url: https://api.kairos.example
+  - url: http://localhost:3000
+    description: Local development server
+security:
+  - bearerAuth: []
+tags:
+  - name: Platform
+    description: Platform overview and API entrypoint operations.
+  - name: Authentication
+    description: User authentication and access token operations.
 paths:
   /:
     get:
-      summary: Health check endpoint
-      operationId: getHealthCheck
+      tags:
+        - Platform
+      summary: Health check
+      operationId: healthCheck
+      description: Check if the Kairos API is running and healthy.
+      security: []
       responses:
         "200":
-          description: Successful response
+          description: Kairos description
           content:
             text/plain:
               schema:
                 type: string
-                example: "Kairos: The right moment for customer data."
+              example: "Kairos: The right moment for customer data."
+  /api/v1/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate a user
+      description: Authenticate a user with email and password credentials.
+      operationId: loginUser
+      security: []
+      requestBody:
+        required: true
+        description: Email and password credentials.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            examples:
+              default:
+                summary: Admin login
+                value:
+                  email: admin@example.com
+                  password: password
+      responses:
+        "200":
+          description: Authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticatedUser"
+              examples:
+                default:
+                  summary: Authenticated user payload
+                  value:
+                    user:
+                      id: 9e4e4e91-4c26-4ba2-a2d6-77c5d6d7ce0a
+                      username: admin
+                      email: admin@example.com
+                      password: password
+                      roles:
+                        - ROLE_SUPER_ADMIN
+                    token:
+                      token_type: Bearer
+                      expires_in: 3600
+                      access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Use the Bearer access token returned by the [`POST /api/v1/login`](#operation-authenticate-a-user) endpoint.
+  schemas:
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address.
+          example: admin@example.com
+        password:
+          type: string
+          format: password
+          description: User password.
+          example: password
+    AuthenticatedUser:
+      type: object
+      additionalProperties: false
+      required:
+        - user
+        - token
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          $ref: "#/components/schemas/AccessToken"
+    UserRole:
+      type: string
+      description: Role assigned to the authenticated user.
+      enum:
+        - ROLE_SUPER_ADMIN
+    User:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - username
+        - email
+        - password
+        - roles
+      properties:
+        id:
+          type: string
+          description: Unique user identifier.
+          example: 9e4e4e91-4c26-4ba2-a2d6-77c5d6d7ce0a
+        username:
+          type: string
+          description: Username displayed for the user.
+          example: admin
+        email:
+          type: string
+          format: email
+          description: Email address used to sign in.
+          example: admin@example.com
+        password:
+          type: string
+          format: password
+          description: User password.
+          example: password
+        roles:
+          type: array
+          description: Roles granted to the user.
+          items:
+            $ref: "#/components/schemas/UserRole"
+    AccessToken:
+      type: object
+      additionalProperties: false
+      required:
+        - token_type
+        - expires_in
+        - access_token
+      properties:
+        token_type:
+          type: string
+          description: Token type returned by the authentication server.
+          enum:
+            - Bearer
+        expires_in:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Number of seconds before the access token expires.
+          example: 3600
+        access_token:
+          type: string
+          description: Bearer access token.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example
