@@ -2,14 +2,13 @@ import React from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import useBaseUrl from '@docusaurus/useBaseUrl';
 import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
 import styles from './index.module.css';
 
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
-  const introUrl = useBaseUrl('/docs/getting-started');
+  const {docsGettingStartedPath} = siteConfig.customFields;
 
   return (
       <header className={clsx('hero hero--primary', styles.heroBanner)}>
@@ -20,7 +19,7 @@ function HomepageHeader() {
             and activating customer data in real time.
           </p>
           <div className={styles.buttons}>
-            <Link className='button button--secondary button--lg' to={introUrl}>
+            <Link className='button button--secondary button--lg' to={docsGettingStartedPath}>
               Get Started
             </Link>
           </div>

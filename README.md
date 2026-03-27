@@ -2,25 +2,27 @@
 
 This repository contains only end-user documentation for Kairos.
 
-The docs website is generated with Docusaurus and published to GitHub Pages with branch-based version paths.
+The docs website is generated with Docusaurus and published to GitHub Pages with a default-branch-owned homepage and docs root.
 
 ## Version publishing model
 
-Only these branches are deployed:
+The current default branch is configured in `docs-site.config.js`.
+
+Only these branches are deployable:
 
 - `main`
 - `*.x` (for example: `1.x`, `2.x`, `beta.x`)
 
 Published paths:
 
+- default branch -> `/`
+- default branch docs -> `/docs`
 - `main` -> `/docs/next`
-- `1.x` -> `/docs/1.x`
-- `2.x` -> `/docs/2.x`
-- `beta.x` -> `/docs/beta.x`
+- non-default release branches -> `/docs/<version>`
 
 Branches outside this policy (for example `feature/*`) are not deployed.
 
-A version selector in the navbar is generated from `docs/versions.json` on the `gh-pages` branch.
+A version selector in the navbar preserves the current docs page when the target version contains it and otherwise falls back to the configured entry page.
 
 ## Local development
 
@@ -40,6 +42,12 @@ Run the docs locally:
 
 ```bash
 npm run start
+```
+
+Local development defaults to the configured default branch. To simulate `main` locally:
+
+```bash
+DOCS_CURRENT_BRANCH=main npm run start
 ```
 
 Run docs with API template hot reload:
@@ -84,8 +92,10 @@ npm run validate
 
 Set GitHub Pages source to the `gh-pages` branch root.
 
-The deploy workflow updates:
+The deploy workflow is manual and updates:
 
-- `/docs/<version>/` for the current branch build
+- `/` and `/docs/` for the default branch build
+- `/docs/next/` for `main`
+- `/docs/<version>/` for other release branches
 - `/docs/versions.json` for version navigation
-- root redirects to `./docs/next/` (relative redirect, base-path safe)
+- `/docs/doc-paths.json` for context-preserving version switching

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - "*.x"
 
   pull_request:
     branches:
@@ -37,6 +38,9 @@ jobs:
 
       - name: Lint Markdown
         run: npm run lint
+
+      - name: Test runtime helpers
+        run: npm test
 
       - name: Build documentation
         run: npm run build
