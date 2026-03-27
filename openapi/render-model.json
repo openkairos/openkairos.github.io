@@ -1,0 +1,562 @@
+{
+  "meta": {
+    "title": "Kairos",
+    "summary": "Kairos REST API documentation.",
+    "description": "Kairos is a customer data platform that helps businesses unify and activate their customer data for better marketing and customer experience. This API allows you to interact with Kairos to manage your customer data and leverage its features.",
+    "version": "1.0.0",
+    "termsOfService": null,
+    "contact": null,
+    "license": {
+      "name": "GPL-3.0 license",
+      "url": "https://github.com/openkairos/kairos?tab=GPL-3.0-1-ov-file"
+    },
+    "externalDocs": null
+  },
+  "servers": [
+    {
+      "id": "local-development-server",
+      "urlTemplate": "http://localhost:3000",
+      "description": "Local development server",
+      "variables": [],
+      "defaultResolvedUrl": "http://localhost:3000"
+    }
+  ],
+  "auth": {
+    "schemes": [
+      {
+        "id": "bearerAuth",
+        "type": "http",
+        "scheme": "bearer",
+        "displayName": "Bearer Authentication",
+        "description": "Use the Bearer access token returned by the [`POST /api/v1/login`](#operation-authenticate-a-user) endpoint.",
+        "location": {
+          "kind": "header",
+          "name": "Authorization"
+        },
+        "scopes": [],
+        "flows": [],
+        "openIdConnectUrl": null
+      }
+    ],
+    "defaultSchemeId": "bearerAuth"
+  },
+  "tags": [
+    {
+      "id": "platform",
+      "name": "Platform",
+      "description": "Platform overview and API entrypoint operations.",
+      "externalDocs": null,
+      "operationIds": [
+        "healthCheck"
+      ]
+    },
+    {
+      "id": "authentication",
+      "name": "Authentication",
+      "description": "User authentication and access token operations.",
+      "externalDocs": null,
+      "operationIds": [
+        "loginUser"
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "id": "healthCheck",
+      "kind": "path",
+      "path": "/",
+      "method": "get",
+      "summary": "Health check",
+      "description": "Check if the Kairos API is running and healthy.",
+      "deprecated": false,
+      "tags": [
+        "Platform"
+      ],
+      "externalDocs": null,
+      "servers": [],
+      "security": [],
+      "parameters": {
+        "path": [],
+        "query": [],
+        "header": [],
+        "cookie": []
+      },
+      "requestBody": null,
+      "responses": [
+        {
+          "statusCode": "200",
+          "description": "Kairos description",
+          "headers": [],
+          "content": [
+            {
+              "mediaType": "text/plain",
+              "schemaRef": null,
+              "schema": {
+                "type": "string"
+              },
+              "examples": [
+                {
+                  "id": "default",
+                  "summary": null,
+                  "description": null,
+                  "value": "Kairos: The right moment for customer data.",
+                  "externalValue": null
+                }
+              ],
+              "encoding": null
+            }
+          ],
+          "links": []
+        }
+      ],
+      "callbacks": [],
+      "links": [],
+      "examples": {
+        "request": [],
+        "response": [
+          {
+            "statusCode": "200",
+            "mediaType": "text/plain",
+            "id": "default",
+            "summary": null,
+            "value": "Kairos: The right moment for customer data."
+          }
+        ]
+      }
+    },
+    {
+      "id": "loginUser",
+      "kind": "path",
+      "path": "/api/v1/login",
+      "method": "post",
+      "summary": "Authenticate a user",
+      "description": "Authenticate a user with email and password credentials.",
+      "deprecated": false,
+      "tags": [
+        "Authentication"
+      ],
+      "externalDocs": null,
+      "servers": [],
+      "security": [],
+      "parameters": {
+        "path": [],
+        "query": [],
+        "header": [],
+        "cookie": []
+      },
+      "requestBody": {
+        "required": true,
+        "description": "Email and password credentials.",
+        "content": [
+          {
+            "mediaType": "application/json",
+            "schemaRef": null,
+            "schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "email",
+                "password"
+              ],
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "format": "email",
+                  "description": "User email address.",
+                  "example": "admin@example.com"
+                },
+                "password": {
+                  "type": "string",
+                  "format": "password",
+                  "description": "User password.",
+                  "example": "password"
+                }
+              }
+            },
+            "examples": [
+              {
+                "id": "default",
+                "summary": "Admin login",
+                "description": null,
+                "value": {
+                  "email": "admin@example.com",
+                  "password": "password"
+                },
+                "externalValue": null
+              }
+            ],
+            "encoding": null
+          }
+        ]
+      },
+      "responses": [
+        {
+          "statusCode": "200",
+          "description": "Authenticated user",
+          "headers": [],
+          "content": [
+            {
+              "mediaType": "application/json",
+              "schemaRef": null,
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "user",
+                  "token"
+                ],
+                "properties": {
+                  "user": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "username",
+                      "email",
+                      "password",
+                      "roles"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Unique user identifier.",
+                        "example": "9e4e4e91-4c26-4ba2-a2d6-77c5d6d7ce0a"
+                      },
+                      "username": {
+                        "type": "string",
+                        "description": "Username displayed for the user.",
+                        "example": "admin"
+                      },
+                      "email": {
+                        "type": "string",
+                        "format": "email",
+                        "description": "Email address used to sign in.",
+                        "example": "admin@example.com"
+                      },
+                      "password": {
+                        "type": "string",
+                        "format": "password",
+                        "description": "User password.",
+                        "example": "password"
+                      },
+                      "roles": {
+                        "type": "array",
+                        "description": "Roles granted to the user.",
+                        "items": {
+                          "type": "string",
+                          "description": "Role assigned to the authenticated user.",
+                          "enum": [
+                            "ROLE_SUPER_ADMIN"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "token": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "token_type",
+                      "expires_in",
+                      "access_token"
+                    ],
+                    "properties": {
+                      "token_type": {
+                        "type": "string",
+                        "description": "Token type returned by the authentication server.",
+                        "enum": [
+                          "Bearer"
+                        ]
+                      },
+                      "expires_in": {
+                        "type": "integer",
+                        "format": "int32",
+                        "minimum": 0,
+                        "description": "Number of seconds before the access token expires.",
+                        "example": 3600
+                      },
+                      "access_token": {
+                        "type": "string",
+                        "description": "Bearer access token.",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example"
+                      }
+                    }
+                  }
+                }
+              },
+              "examples": [
+                {
+                  "id": "default",
+                  "summary": "Authenticated user payload",
+                  "description": null,
+                  "value": {
+                    "user": {
+                      "id": "9e4e4e91-4c26-4ba2-a2d6-77c5d6d7ce0a",
+                      "username": "admin",
+                      "email": "admin@example.com",
+                      "password": "password",
+                      "roles": [
+                        "ROLE_SUPER_ADMIN"
+                      ]
+                    },
+                    "token": {
+                      "token_type": "Bearer",
+                      "expires_in": 3600,
+                      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example"
+                    }
+                  },
+                  "externalValue": null
+                }
+              ],
+              "encoding": null
+            }
+          ],
+          "links": []
+        }
+      ],
+      "callbacks": [],
+      "links": [],
+      "examples": {
+        "request": [
+          {
+            "mediaType": "application/json",
+            "id": "default",
+            "summary": "Admin login",
+            "value": {
+              "email": "admin@example.com",
+              "password": "password"
+            }
+          }
+        ],
+        "response": [
+          {
+            "statusCode": "200",
+            "mediaType": "application/json",
+            "id": "default",
+            "summary": "Authenticated user payload",
+            "value": {
+              "user": {
+                "id": "9e4e4e91-4c26-4ba2-a2d6-77c5d6d7ce0a",
+                "username": "admin",
+                "email": "admin@example.com",
+                "password": "password",
+                "roles": [
+                  "ROLE_SUPER_ADMIN"
+                ]
+              },
+              "token": {
+                "token_type": "Bearer",
+                "expires_in": 3600,
+                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "webhooks": [],
+  "components": {
+    "schemas": [
+      {
+        "id": "LoginRequest",
+        "name": "LoginRequest",
+        "kind": "schema",
+        "sourceRef": "#/components/schemas/LoginRequest",
+        "description": null,
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "email",
+            "password"
+          ],
+          "properties": {
+            "email": {
+              "type": "string",
+              "format": "email",
+              "description": "User email address.",
+              "example": "admin@example.com"
+            },
+            "password": {
+              "type": "string",
+              "format": "password",
+              "description": "User password.",
+              "example": "password"
+            }
+          }
+        },
+        "value": null,
+        "examples": [],
+        "usedBy": []
+      },
+      {
+        "id": "AuthenticatedUser",
+        "name": "AuthenticatedUser",
+        "kind": "schema",
+        "sourceRef": "#/components/schemas/AuthenticatedUser",
+        "description": null,
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "user",
+            "token"
+          ],
+          "properties": {
+            "user": {
+              "$ref": "#/components/schemas/User"
+            },
+            "token": {
+              "$ref": "#/components/schemas/AccessToken"
+            }
+          }
+        },
+        "value": null,
+        "examples": [],
+        "usedBy": []
+      },
+      {
+        "id": "UserRole",
+        "name": "UserRole",
+        "kind": "schema",
+        "sourceRef": "#/components/schemas/UserRole",
+        "description": "Role assigned to the authenticated user.",
+        "schema": {
+          "type": "string",
+          "description": "Role assigned to the authenticated user.",
+          "enum": [
+            "ROLE_SUPER_ADMIN"
+          ]
+        },
+        "value": null,
+        "examples": [],
+        "usedBy": []
+      },
+      {
+        "id": "User",
+        "name": "User",
+        "kind": "schema",
+        "sourceRef": "#/components/schemas/User",
+        "description": null,
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "username",
+            "email",
+            "password",
+            "roles"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique user identifier.",
+              "example": "9e4e4e91-4c26-4ba2-a2d6-77c5d6d7ce0a"
+            },
+            "username": {
+              "type": "string",
+              "description": "Username displayed for the user.",
+              "example": "admin"
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "description": "Email address used to sign in.",
+              "example": "admin@example.com"
+            },
+            "password": {
+              "type": "string",
+              "format": "password",
+              "description": "User password.",
+              "example": "password"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Roles granted to the user.",
+              "items": {
+                "$ref": "#/components/schemas/UserRole"
+              }
+            }
+          }
+        },
+        "value": null,
+        "examples": [],
+        "usedBy": []
+      },
+      {
+        "id": "AccessToken",
+        "name": "AccessToken",
+        "kind": "schema",
+        "sourceRef": "#/components/schemas/AccessToken",
+        "description": null,
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "token_type",
+            "expires_in",
+            "access_token"
+          ],
+          "properties": {
+            "token_type": {
+              "type": "string",
+              "description": "Token type returned by the authentication server.",
+              "enum": [
+                "Bearer"
+              ]
+            },
+            "expires_in": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0,
+              "description": "Number of seconds before the access token expires.",
+              "example": 3600
+            },
+            "access_token": {
+              "type": "string",
+              "description": "Bearer access token.",
+              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example"
+            }
+          }
+        },
+        "value": null,
+        "examples": [],
+        "usedBy": []
+      }
+    ],
+    "requestBodies": [],
+    "responses": [],
+    "parameters": [],
+    "headers": [],
+    "examples": [],
+    "securitySchemes": [
+      {
+        "id": "bearerAuth",
+        "name": "bearerAuth",
+        "kind": "securityScheme",
+        "sourceRef": "#/components/securitySchemes/bearerAuth",
+        "description": "Use the Bearer access token returned by the [`POST /api/v1/login`](#operation-authenticate-a-user) endpoint.",
+        "schema": null,
+        "value": {
+          "type": "http",
+          "scheme": "bearer",
+          "bearerFormat": "JWT",
+          "description": "Use the Bearer access token returned by the [`POST /api/v1/login`](#operation-authenticate-a-user) endpoint."
+        },
+        "examples": [],
+        "usedBy": []
+      }
+    ],
+    "links": [],
+    "callbacks": []
+  },
+  "download": {
+    "fileName": "kairos.openapi.yaml",
+    "sourceFormat": "yaml",
+    "bundleStrategy": "static-single-file",
+    "entrypoint": "openapi/openapi.yaml",
+    "assetPath": "kairos.openapi.yaml"
+  }
+}
