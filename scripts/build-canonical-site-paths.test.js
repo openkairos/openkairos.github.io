@@ -2,10 +2,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  buildAbsoluteSiteUrl,
   buildCanonicalDocsContentPath,
   buildCanonicalDocsRootPath,
   buildCanonicalHomePath,
   buildCurrentDocsContentPath,
+  buildSharedDocsManifestPath,
 } = require('./build-canonical-site-paths');
 
 test('builds canonical docs root for the default branch version', () => {
@@ -53,4 +55,21 @@ test('builds canonical home path', () => {
   const homePath = buildCanonicalHomePath({docsSiteBase: '/'});
 
   assert.equal(homePath, '/');
+});
+
+test('builds absolute site urls from canonical paths', () => {
+  const siteUrl = buildAbsoluteSiteUrl({
+    siteUrl: 'https://openkairos.github.io/',
+    path: '/docs/',
+  });
+
+  assert.equal(siteUrl, 'https://openkairos.github.io/docs/');
+});
+
+test('builds the shared docs manifest path from the site base', () => {
+  assert.equal(buildSharedDocsManifestPath({docsSiteBase: '/'}), '/docs/doc-paths.json');
+  assert.equal(
+    buildSharedDocsManifestPath({docsSiteBase: '/preview'}),
+    '/preview/docs/doc-paths.json',
+  );
 });
