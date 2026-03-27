@@ -1,23 +1,30 @@
-const {
-  buildVersionNavbarItems,
-} = require('./scripts/build-version-navbar-items');
 const {resolveDocsRuntime} = require('./scripts/resolve-docs-runtime');
+const {versionFallbackDocPath} = require('./docs-site.config');
 const prismReact = require('prism-react-renderer');
+const {
+  buildCanonicalHomePath,
+  buildCurrentDocsContentPath,
+} = require('./scripts/build-canonical-site-paths');
 
 const {
   versionSlug,
   siteUrl,
   baseUrl,
   docsSiteBase,
+  docsRouteBasePath,
+  defaultBranch,
   versions,
 } = resolveDocsRuntime();
-
-const versionItems = buildVersionNavbarItems({
-  versions,
-  versionSlug,
-  siteUrl,
+const homePath = buildCanonicalHomePath({docsSiteBase});
+const docsIntroPath = buildCurrentDocsContentPath({
   baseUrl,
-  docsSiteBase,
+  docsRouteBasePath,
+  docPath: 'intro',
+});
+const docsGettingStartedPath = buildCurrentDocsContentPath({
+  baseUrl,
+  docsRouteBasePath,
+  docPath: 'getting-started',
 });
 
 /** @type {import('@docusaurus/types').Config} */
@@ -37,6 +44,14 @@ const config = {
     defaultLocale: 'en',
     locales: ['en'],
   },
+  customFields: {
+    defaultBranch,
+    homePath,
+    docsSiteBase,
+    docsIntroPath,
+    docsGettingStartedPath,
+    versionFallbackDocPath,
+  },
   themeConfig: {
     colorMode: {
       defaultMode: 'light',
@@ -48,11 +63,11 @@ const config = {
       logo: {
         alt: 'Open Kairos Logo',
         src: 'img/favicon.svg',
-        href: baseUrl,
+        href: homePath,
       },
       items: [
         {
-          to: '/docs/intro',
+          to: docsIntroPath,
           position: 'left',
           label: 'Documentation',
         },
@@ -62,9 +77,10 @@ const config = {
           label: 'API Reference',
         },
         {
-          label: `Version: ${versionSlug}`,
+          type: 'custom-version-switcher',
+          currentVersion: versionSlug,
           position: 'right',
-          items: versionItems,
+          versions,
         },
         {
           href: 'https://github.com/openkairos',
@@ -80,7 +96,7 @@ const config = {
       logo: {
         alt: 'Kairos Logo',
         src: 'img/favicon.svg',
-        href: baseUrl,
+        href: homePath,
         width: 32,
         height: 32,
       },
@@ -95,7 +111,7 @@ const config = {
       'classic',
       {
         docs: {
-          routeBasePath: 'docs',
+          routeBasePath: docsRouteBasePath,
           sidebarPath: require.resolve('./sidebars.js'),
         },
         blog: false,
@@ -112,7 +128,7 @@ const config = {
         indexDocs: true,
         indexBlog: false,
         indexPages: true,
-        docsRouteBasePath: '/docs',
+        docsRouteBasePath: `/${docsRouteBasePath}`,
         hashed: true,
         language: ['en'],
       },
