@@ -3,8 +3,19 @@ const assert = require('node:assert/strict');
 
 const {resolveDocsRuntime} = require('./resolve-docs-runtime');
 
-test('defaults local runtime to the configured default branch', () => {
-  const runtime = resolveDocsRuntime({});
+test('rejects missing branch inputs', () => {
+  const act = () => resolveDocsRuntime({});
+
+  assert.throws(act, /DOCS_CURRENT_BRANCH must be provided/);
+});
+
+test('uses explicit local runtime branch inputs', () => {
+  const env = {
+    DOCS_CURRENT_BRANCH: '1.x',
+    DOCS_DEFAULT_BRANCH: '1.x',
+  };
+
+  const runtime = resolveDocsRuntime(env);
 
   assert.deepEqual(runtime, {
     currentBranch: '1.x',
@@ -20,11 +31,13 @@ test('defaults local runtime to the configured default branch', () => {
 });
 
 test('maps main to next under a versioned docs route base path', () => {
-  const runtime = resolveDocsRuntime({
+  const env = {
     DOCS_CURRENT_BRANCH: 'main',
     DOCS_DEFAULT_BRANCH: '1.x',
     DOCS_VERSIONS: '1.x,next',
-  });
+  };
+
+  const runtime = resolveDocsRuntime(env);
 
   assert.deepEqual(runtime, {
     currentBranch: 'main',
