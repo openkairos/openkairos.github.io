@@ -19,7 +19,16 @@ The documentation reflects the product boundary:
 - `Kairos` is the core Customer Data Platform
 - `Aletheia` is the dashboard built on top of Kairos
 
-This is intentionally documented more like `Elasticsearch + Kibana` than a single undifferentiated product, but the navigation is capability-first so the docs can scale as the feature set grows.
+The docs are organized in a capability-first structure so they can scale over time, while still making the Kairos and Aletheia ownership boundary explicit on the page.
+
+## API reference model
+
+The repository also publishes a generated API reference.
+
+- The API reference is generated from `openapi/openapi.yaml` and `openapi/templates/**`.
+- The generated output is served through an iframe-based page in the Docusaurus site.
+- The primary editing surface for API docs is `openapi/**`, not `static/openapi/**`.
+- Each published docs version should align with the corresponding API reference version.
 
 ## Local development
 
@@ -56,6 +65,12 @@ The watcher regenerates `static/openapi` whenever you edit:
 - `openapi/openapi.yaml`
 - `openapi/templates/kairos/**/*.mustache`
 
+Build the generated API reference manually:
+
+```bash
+npm run build:api
+```
+
 Build static files:
 
 ```bash
@@ -74,12 +89,21 @@ Run validation:
 npm run validate
 ```
 
+## Version ownership
+
+- Narrative docs versions are owned by `docs/<version>`.
+- Published versions are declared in `versioned-docs/versions.js`.
+- Version navigation behavior is configured in `versioned-docs/navigation/<version>.js`.
+- Routing and multi-version registry behavior is defined in `versioned-docs/registry/registry.js`.
+- Git branch names do not define published docs ownership.
+
 ## GitHub Pages setup
 
 Publish the site with the GitHub Pages workflow in `.github/workflows/publish-site.yml`.
 
-The deployment model matches Koala:
+The deployment model is:
 
 - one repository
 - one static site build
 - all released docs versions live side by side in that build
+- generated API reference is included in the same site build
