@@ -1,12 +1,18 @@
 ---
-title: Quick Start
+title: Getting Started
 ---
 
-The fastest way to evaluate the stack is to run Kairos and Aletheia together with Docker Compose.
+The easiest way to explore Kairos is to run Kairos, Aletheia, and MongoDB together with Docker images.
 
-## Start the stack
+The following `docker-compose.yml` file starts:
 
-Create a `docker-compose.yml` file with the following services:
+- the Kairos server
+- the Aletheia dashboard
+- a MongoDB instance
+
+## Docker Compose configuration
+
+Create a `docker-compose.yml` file with the following services, then run `docker compose up`.
 
 ```yaml
 services:
@@ -68,22 +74,20 @@ volumes:
   kairos_mongodb_data:
 ```
 
-Start it:
+After the stack is healthy, you can access:
 
-```bash
-docker compose up
-```
+- Aletheia dashboard at [http://localhost:8080](http://localhost:8080)
+- Kairos API at [http://localhost:3000](http://localhost:3000)
 
-## Open the products
+:::danger
 
-After the stack is healthy:
+This configuration is for development and evaluation only. Do not use these example credentials or keys in production.
 
-- Aletheia dashboard: `http://localhost:8080`
-- Kairos API: `http://localhost:3000`
+:::
 
-## Generate an application key
+## Generating an APP key
 
-Kairos requires a base64-encoded application key for encryption and signing.
+The application key is a base64-encoded value used for encryption and signing.
 
 Using Node.js:
 
@@ -97,14 +101,16 @@ Using OpenSSL:
 printf 'base64:' && openssl rand -base64 32
 ```
 
-## Next steps
+## Kairos environment variables
 
-1. Read the system model to understand how Kairos and Aletheia fit together.
-2. Review the profiles and identity section to understand the shared customer model.
-3. Review the local stack guide when you want a more explicit operator workflow.
+You can customize Kairos with the following variables:
 
-:::danger
-
-The example credentials and keys in this guide are for local evaluation only. Replace them before any shared or production use.
-
-:::
+| Variable Name | Description | Default Value |
+| --- | --- | --- |
+| `NODE_ENV` | Application environment | `development` |
+| `PORT` | Port on which Kairos listens | `3000` |
+| `MONGODB_CONNECTION_STRING` | Connection string for MongoDB | N/A |
+| `APP_KEY` | Base64 encoded application key | N/A |
+| `SUPER_ADMIN_USERNAME` | Bootstrap super admin username | N/A |
+| `SUPER_ADMIN_EMAIL` | Bootstrap super admin email | N/A |
+| `SUPER_ADMIN_PASSWORD` | Bootstrap super admin password | N/A |

@@ -29,8 +29,14 @@ test('registry config derives versioned docs settings from raw declarations', ()
   ]);
 
   assert.equal(docPathManifest['1.x'].includes('overview/intro'), true);
-  assert.equal(docPathManifest['1.x'].includes('overview/aletheia'), true);
-  assert.equal(docPathManifest['1.x'].includes('concepts/system-model'), true);
+  assert.equal(
+    docPathManifest['1.x'].includes('getting-started/quick-start'),
+    true,
+  );
+  assert.equal(
+    docPathManifest['1.x'].includes('reference/api-reference'),
+    true,
+  );
 
   assert.deepEqual(search.searchContextByPaths, [
     {label: '1.x', path: 'docs/1.x'},

@@ -1,35 +1,138 @@
 ---
-title: Introduction
+title: Overview
 ---
 
-Open Kairos is documented around system concepts and workflows rather than around product package boundaries.
+Kairos is an open source Customer Data Platform designed to collect, unify, enrich, analyze, and activate customer data across the customer lifecycle.
 
-That keeps the documentation scalable as the platform grows. Readers should be able to start from a capability such as identity resolution, segmentation, analytics, or operations, then understand how Kairos and Aletheia each participate in that capability.
+It brings together the analytical side of a CDP with the activation side, so teams can move from raw data to customer understanding and then to action. Aletheia is the dashboard built on top of Kairos for exploring data, inspecting audiences, and working with the platform through a visual interface.
 
-## Product relationship
+Kairos is intended to give teams a complete view of known and anonymous customers, support deeper analysis, and make it possible to act on customer data across channels.
 
-Kairos is the core Customer Data Platform. It collects events, unifies identities, maintains profiles, drives segmentation, and exposes APIs and execution surfaces.
+## Core philosophy
 
-Aletheia is the dashboard built on top of that platform. It helps teams inspect data, analyze audience state, and move through operational workflows without working directly from raw APIs.
+In Greek, "Kairos" means "the right moment." The platform is built around the idea that customer data becomes valuable when it helps teams understand a customer and act at the right moment.
 
-Think about the relationship the same way teams think about Elasticsearch and Kibana:
+Kairos brings together:
 
-- Kairos owns the platform model and execution concerns.
-- Aletheia owns the dashboard and user-facing working surface.
+- a system of insights for customer understanding
+- a system of engagement for activation
+- a unified real-time customer profile
+- a platform surface for developers and teams
 
-## How to read this documentation
+## Feature summary
 
-The top-level structure is capability-first:
+:::warning
 
-- `Overview` explains the products and the system model.
-- `Getting Started` gets a local stack running.
-- `Concepts` explains the shared model and ownership boundaries.
-- `Data Collection`, `Profiles and Identity`, `Audiences and Segmentation`, and `Analytics and Insights` cover core product capabilities.
-- `Guides` cover end-to-end workflows.
-- `Reference` covers APIs and configuration details.
+This section reflects the broader product vision and roadmap. Not all capabilities listed here are necessarily available at launch.
 
-Each page should make its applicability clear:
+:::
 
-- `Applies to: Kairos`
-- `Applies to: Aletheia`
-- `Applies to: Kairos and Aletheia`
+| Capability | Insights CDP | Engagement CDP | Kairos |
+| --- | --- | --- | --- |
+| 360 Profile | Yes | Yes | Yes |
+| Segmentation | Yes | Yes | Yes |
+| Predictive analytics | Yes | No | Yes |
+| Personalization | No | Yes | Yes |
+| Campaign orchestration | No | Yes | Yes |
+| Activation | No | Yes | Yes |
+| Developer platform | Partial | Partial | Full |
+| Governance | Yes | Yes | Yes |
+
+## Key capabilities
+
+### Data collection and ingestion
+
+Kairos is designed to work with:
+
+- first-party behavioral events
+- transactional records
+- CRM data
+- offline imports
+- third-party enrichment
+- real-time event streams
+
+### Identity resolution
+
+Kairos includes:
+
+- deterministic and probabilistic matching
+- identity graphs
+- profile stitching across devices and channels
+- unification of anonymous and known customer data
+
+### Unified customer profile
+
+The platform is intended to maintain merged profiles including:
+
+- personal data
+- behavioral history
+- transactional data
+- preferences and segments
+- predictive attributes
+- consent and GDPR metadata
+
+### Audience building and segmentation
+
+Kairos supports:
+
+- real-time segmentation
+- predictive segments
+- rule- and event-based segments
+- frequency and recency analysis
+- [LTV](https://en.wikipedia.org/wiki/Customer_lifetime_value) and propensity scoring
+
+### Analytics, modeling, and insights
+
+Capabilities include:
+
+- LTV analysis
+- [Propensity modeling](https://archive.is/k60oU)
+- churn prediction
+- cohort analysis
+- trend discovery
+- multi-touch journeys
+- custom dashboards through [Aletheia](https://github.com/openkairos/aletheia)
+
+### Real-time personalization
+
+- profile lookups in milliseconds
+- context-aware recommendations
+- trigger-based personalization
+- streaming segment evaluation
+
+### Cross-channel orchestration
+
+- journey orchestration
+- event-driven workflows
+- multi-channel message routing
+- conditional logic and branching
+- frequency capping
+
+### Activation and campaign execution
+
+Supports integrations for:
+
+- email
+- SMS
+- push notifications
+- web personalization
+- advertising audiences
+- CRM updates
+
+### Developer-friendly platform
+
+Kairos offers:
+
+- APIs and SDKs
+- webhooks
+- plugin architecture
+- reverse ETL
+- developer sandbox environments
+
+### Governance, privacy, and security
+
+- consent tracking
+- data lineage
+- role-based access
+- data minimization
+- audit trails
