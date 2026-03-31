@@ -4,19 +4,19 @@ import styles from './styles.module.css';
 
 const featureList = [
   {
-    title: 'Kairos Platform',
+    title: 'Concept-First Navigation',
     description:
-      'Collect events, resolve identities, build profiles, define segments, and expose the APIs that downstream systems depend on.',
+      'Navigate by capabilities like identity, audiences, analytics, and operations instead of locking the whole site into product buckets.',
   },
   {
-    title: 'Aletheia Dashboard',
+    title: 'Explicit Product Ownership',
     description:
-      'Give operators, analysts, and growth teams a dashboard for exploring the customer data managed by Kairos.',
+      'Keep Kairos and Aletheia visible on the page itself so readers always know whether a behavior lives in the platform, the dashboard, or both.',
   },
   {
-    title: 'Shared Product Boundary',
+    title: 'Scales With the Suite',
     description:
-      'Document the product like Elasticsearch and Kibana: platform concerns stay in Kairos, dashboard concerns stay in Aletheia.',
+      'As more workflows and surfaces appear, the information architecture can grow around stable system concepts instead of unstable product packaging.',
   },
 ];
 
@@ -36,11 +36,11 @@ export default function HomepageFeatures() {
     <section className={styles.features}>
       <div className="container">
         <div className={styles.intro}>
-          <p className={styles.kicker}>Product Model</p>
-          <h2>Kairos stores and decides. Aletheia shows and guides.</h2>
+          <p className={styles.kicker}>Information Architecture</p>
+          <h2>Document the system by concepts. Label the product ownership.</h2>
           <p>
-            The site now follows the product boundary instead of treating
-            everything as one generic documentation surface.
+            The site keeps the Kairos and Aletheia boundary explicit without
+            making that boundary the top-level navigation model.
           </p>
         </div>
         <div className="row">

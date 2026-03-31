@@ -99,8 +99,8 @@ printf 'base64:' && openssl rand -base64 32
 
 ## Next steps
 
-1. Read the Kairos platform concepts to understand ingestion, profiles, and segments.
-2. Open the Aletheia overview to understand how the dashboard maps to Kairos data.
+1. Read the system model to understand how Kairos and Aletheia fit together.
+2. Review the profiles and identity section to understand the shared customer model.
 3. Review the local stack guide when you want a more explicit operator workflow.
 
 :::danger

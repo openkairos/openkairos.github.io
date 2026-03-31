@@ -2,41 +2,34 @@
 title: Introduction
 ---
 
-Kairos is the core Customer Data Platform. It collects customer events, unifies identities, maintains profiles, powers segmentation, and exposes the APIs that downstream systems depend on.
+Open Kairos is documented around system concepts and workflows rather than around product package boundaries.
 
-Aletheia is the dashboard for that platform. It gives operators, analysts, and growth teams a working surface for exploring the data stored in Kairos, reviewing audiences, and following operational workflows without living in raw APIs.
+That keeps the documentation scalable as the platform grows. Readers should be able to start from a capability such as identity resolution, segmentation, analytics, or operations, then understand how Kairos and Aletheia each participate in that capability.
 
-Think of the relationship the same way teams think about Elasticsearch and Kibana:
+## Product relationship
 
-- Kairos is the data and execution platform.
-- Aletheia is the dashboard and operational interface built on top of that platform.
+Kairos is the core Customer Data Platform. It collects events, unifies identities, maintains profiles, drives segmentation, and exposes APIs and execution surfaces.
 
-## What lives in Kairos
+Aletheia is the dashboard built on top of that platform. It helps teams inspect data, analyze audience state, and move through operational workflows without working directly from raw APIs.
 
-Kairos owns the platform concerns:
+Think about the relationship the same way teams think about Elasticsearch and Kibana:
 
-- Data ingestion from applications, systems, and imports
-- Identity resolution across known and anonymous activity
-- Customer profiles and profile enrichment
-- Segments, audience logic, and activation triggers
-- APIs, webhooks, and integration contracts
+- Kairos owns the platform model and execution concerns.
+- Aletheia owns the dashboard and user-facing working surface.
 
-## What lives in Aletheia
+## How to read this documentation
 
-Aletheia owns the user-facing working experience:
+The top-level structure is capability-first:
 
-- Profile exploration
-- Segment inspection
-- Analytics and dashboard views
-- Operator workflows around audiences and customer data
-- Shared visibility for marketing, operations, and product teams
+- `Overview` explains the products and the system model.
+- `Getting Started` gets a local stack running.
+- `Concepts` explains the shared model and ownership boundaries.
+- `Data Collection`, `Profiles and Identity`, `Audiences and Segmentation`, and `Analytics and Insights` cover core product capabilities.
+- `Guides` cover end-to-end workflows.
+- `Reference` covers APIs and configuration details.
 
-## Read this documentation
+Each page should make its applicability clear:
 
-This documentation is split by responsibility:
-
-- `Getting Started` brings up a local Kairos and Aletheia stack together.
-- `Kairos` covers platform capabilities, concepts, and integrations.
-- `Aletheia` covers dashboard workflows and operational usage.
-- `Guides` explain end-to-end flows that span both products.
-- `Reference` covers APIs, configuration, and environment details.
+- `Applies to: Kairos`
+- `Applies to: Aletheia`
+- `Applies to: Kairos and Aletheia`

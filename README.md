@@ -19,7 +19,7 @@ The documentation reflects the product boundary:
 - `Kairos` is the core Customer Data Platform
 - `Aletheia` is the dashboard built on top of Kairos
 
-This is intentionally documented more like `Elasticsearch + Kibana` than a single undifferentiated product.
+This is intentionally documented more like `Elasticsearch + Kibana` than a single undifferentiated product, but the navigation is capability-first so the docs can scale as the feature set grows.
 
 ## Local development
 

@@ -16,8 +16,9 @@ function HomepageHeader() {
         <p className={styles.eyebrow}>Open Kairos</p>
         <h1 className="hero__title">{siteConfig.title}</h1>
         <p className="hero__subtitle">
-          Kairos is the Customer Data Platform. Aletheia is the dashboard that
-          helps teams inspect, analyze, and operate on top of the platform.
+          Documentation organized by system concepts, workflows, and platform
+          capabilities, with Kairos as the core CDP and Aletheia as the
+          dashboard built on top of it.
         </p>
         <div className={styles.buttons}>
           <Link className="button button--secondary button--lg" to={docsIntroPath}>
