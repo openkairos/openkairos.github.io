@@ -8,23 +8,27 @@ import styles from './index.module.css';
 
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
-  const {docsGettingStartedPath} = siteConfig.customFields;
+  const {docsIntroPath, docsQuickStartPath} = siteConfig.customFields;
 
   return (
-      <header className={clsx('hero hero--primary', styles.heroBanner)}>
-        <div className='container'>
-          <h1 className='hero__title'>{siteConfig.title}</h1>
-          <p className='hero__subtitle'>
-            Kairos is an open source CDP for collecting, unifying, analyzing,
-            and activating customer data in real time.
-          </p>
-          <div className={styles.buttons}>
-            <Link className='button button--secondary button--lg' to={docsGettingStartedPath}>
-              Get Started
-            </Link>
-          </div>
+    <header className={clsx('hero hero--primary', styles.heroBanner)}>
+      <div className="container">
+        <p className={styles.eyebrow}>Open Kairos</p>
+        <h1 className="hero__title">{siteConfig.title}</h1>
+        <p className="hero__subtitle">
+          Kairos is the Customer Data Platform. Aletheia is the dashboard that
+          helps teams inspect, analyze, and operate on top of the platform.
+        </p>
+        <div className={styles.buttons}>
+          <Link className="button button--secondary button--lg" to={docsIntroPath}>
+            Read the Docs
+          </Link>
+          <Link className="button button--outline button--lg" to={docsQuickStartPath}>
+            Quick Start
+          </Link>
         </div>
-      </header>
+      </div>
+    </header>
   );
 }
 
@@ -32,13 +36,14 @@ export default function Home() {
   const {siteConfig} = useDocusaurusContext();
 
   return (
-      <Layout title={siteConfig.title}
-              description='Kairos is an open source CDP for collecting, unifying, analyzing, and activating customer data in real time.'
-      >
-        <HomepageHeader/>
-        <main>
-          <HomepageFeatures/>
-        </main>
-      </Layout>
+    <Layout
+      title={siteConfig.title}
+      description="Open Kairos is an open source CDP with Aletheia as its dashboard and analytics surface."
+    >
+      <HomepageHeader />
+      <main>
+        <HomepageFeatures />
+      </main>
+    </Layout>
   );
 }

@@ -1,23 +1,33 @@
 .features {
-    margin-top: 2rem;
+  margin-top: 2rem;
+  margin-bottom: 4rem;
+}
+
+.intro {
+  max-width: 44rem;
+  margin: 0 auto 2rem;
+  text-align: center;
+}
+
+.kicker {
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary);
 }
 
 .featureCard {
-    border: 1px solid var(--ifm-color-emphasis-300);
-    border-radius: 0.75rem;
-    padding: 1rem;
-    background: var(--ifm-background-color);
-    margin-bottom: 2rem;
+  height: 100%;
+  border: 1px solid rgba(152, 33, 42, 0.18);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: linear-gradient(180deg, #ffffff 0%, #fbf6f5 100%);
+  box-shadow: 0 20px 40px rgba(19, 23, 34, 0.08);
+  margin-bottom: 2rem;
 }
 
 .featureCard:hover {
-    border-color: var(--ifm-color-primary);
-}
-
-.featureImage {
-    display: block;
-    width: 100%;
-    max-height: 170px;
-    object-fit: contain;
-    margin-bottom: 0.75rem;
+  border-color: var(--ifm-color-primary);
 }

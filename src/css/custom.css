@@ -14,6 +14,8 @@
   --ifm-font-family-base: 'Manrope', sans-serif;
   --ifm-heading-font-family: 'Manrope', sans-serif;
   --ifm-font-family-monospace: 'Fira Code', monospace;
+  --ifm-background-color: #fffdfa;
+  --ifm-code-font-size: 95%;
 }
 
 [data-theme='dark'] {
@@ -30,4 +32,15 @@
 
 .footer {
   --ifm-footer-background-color: #1b1e22;
+}
+
+.button.button--outline {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.button.button--outline:hover {
+  color: #ffffff;
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
 }

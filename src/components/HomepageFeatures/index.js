@@ -1,57 +1,54 @@
 import React from 'react';
 import clsx from 'clsx';
-import useBaseUrl from '@docusaurus/useBaseUrl';
 import styles from './styles.module.css';
 
-const FeatureList = [
+const featureList = [
   {
-    title: 'Unified Customer Profiles',
-    image: '/img/illustrations/unified-profile.svg',
+    title: 'Kairos Platform',
     description:
-        'Merge behavioral, transactional, CRM, and consent data into a real-time profile across channels.',
+      'Collect events, resolve identities, build profiles, define segments, and expose the APIs that downstream systems depend on.',
   },
   {
-    title: 'Segmentation and Predictive Insights',
-    image: '/img/illustrations/segmentation.svg',
+    title: 'Aletheia Dashboard',
     description:
-        'Build dynamic audiences, run propensity-oriented analyses, and focus journeys on measurable business outcomes.',
+      'Give operators, analysts, and growth teams a dashboard for exploring the customer data managed by Kairos.',
   },
   {
-    title: 'Cross-Channel Orchestration',
-    image: '/img/illustrations/orchestration.svg',
+    title: 'Shared Product Boundary',
     description:
-        'Activate customer data through email, SMS, push, web, and CRM destinations with event-driven workflows.',
+      'Document the product like Elasticsearch and Kibana: platform concerns stay in Kairos, dashboard concerns stay in Aletheia.',
   },
 ];
 
-function Feature({
-  title,
-  description,
-  image,
-}) {
-  const imageUrl = useBaseUrl(image);
-
+function Feature({title, description}) {
   return (
-      <div className={clsx('col col--4')}>
-        <div className={styles.featureCard}>
-          <img className={styles.featureImage} src={imageUrl} alt={title}/>
-          <h3>{title}</h3>
-          <p>{description}</p>
-        </div>
+    <div className={clsx('col col--4')}>
+      <div className={styles.featureCard}>
+        <h3>{title}</h3>
+        <p>{description}</p>
       </div>
+    </div>
   );
 }
 
 export default function HomepageFeatures() {
   return (
-      <section className={styles.features}>
-        <div className='container'>
-          <div className='row'>
-            {FeatureList.map((props) => (
-                <Feature key={props.title} {...props} />
-            ))}
-          </div>
+    <section className={styles.features}>
+      <div className="container">
+        <div className={styles.intro}>
+          <p className={styles.kicker}>Product Model</p>
+          <h2>Kairos stores and decides. Aletheia shows and guides.</h2>
+          <p>
+            The site now follows the product boundary instead of treating
+            everything as one generic documentation surface.
+          </p>
         </div>
-      </section>
+        <div className="row">
+          {featureList.map((props) => (
+            <Feature key={props.title} {...props} />
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
