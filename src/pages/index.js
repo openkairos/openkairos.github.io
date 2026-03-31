@@ -16,9 +16,9 @@ function HomepageHeader() {
         <p className={styles.eyebrow}>Open Kairos</p>
         <h1 className="hero__title">{siteConfig.title}</h1>
         <p className="hero__subtitle">
-          Documentation organized by system concepts, workflows, and platform
-          capabilities, with Kairos as the core CDP and Aletheia as the
-          dashboard built on top of it.
+          Kairos is an open source Customer Data Platform for collecting,
+          unifying, analyzing, and activating customer data. Aletheia is the
+          dashboard for exploring that data and working with it across teams.
         </p>
         <div className={styles.buttons}>
           <Link className="button button--secondary button--lg" to={docsIntroPath}>
@@ -39,7 +39,7 @@ export default function Home() {
   return (
     <Layout
       title={siteConfig.title}
-      description="Open Kairos is an open source CDP with Aletheia as its dashboard and analytics surface."
+      description="Open Kairos is an open source Customer Data Platform with Aletheia as the dashboard for exploring customer data, audiences, and insights."
     >
       <HomepageHeader />
       <main>

@@ -31,3 +31,11 @@
 .featureCard:hover {
   border-color: var(--ifm-color-primary);
 }
+
+.note {
+  max-width: 44rem;
+  margin: 0 auto;
+  text-align: center;
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.95rem;
+}

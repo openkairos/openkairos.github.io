@@ -4,19 +4,19 @@ import styles from './styles.module.css';
 
 const featureList = [
   {
-    title: 'Concept-First Navigation',
+    title: 'Customer Data Platform',
     description:
-      'Navigate by capabilities like identity, audiences, analytics, and operations instead of locking the whole site into product buckets.',
+      'Collect events and records from multiple systems, unify customer data, and build a shared foundation for profiles, audiences, and downstream workflows.',
   },
   {
-    title: 'Explicit Product Ownership',
+    title: 'Profiles, Audiences, and Insights',
     description:
-      'Keep Kairos and Aletheia visible on the page itself so readers always know whether a behavior lives in the platform, the dashboard, or both.',
+      'Work from identity resolution, profile state, segmentation, and analytical views so teams can reason about customer behavior with more context.',
   },
   {
-    title: 'Scales With the Suite',
+    title: 'Aletheia Dashboard',
     description:
-      'As more workflows and surfaces appear, the information architecture can grow around stable system concepts instead of unstable product packaging.',
+      'Use Aletheia to explore customer data, inspect audiences, and follow dashboard-driven workflows built on top of the Kairos platform.',
   },
 ];
 
@@ -36,17 +36,22 @@ export default function HomepageFeatures() {
     <section className={styles.features}>
       <div className="container">
         <div className={styles.intro}>
-          <p className={styles.kicker}>Information Architecture</p>
-          <h2>Document the system by concepts. Label the product ownership.</h2>
+          <p className={styles.kicker}>Product Overview</p>
+          <h2>Bring customer data together, understand it, and act on it.</h2>
           <p>
-            The site keeps the Kairos and Aletheia boundary explicit without
-            making that boundary the top-level navigation model.
+            Kairos combines data collection, profile building, audience logic,
+            and activation-oriented platform capabilities, while Aletheia gives
+            teams a dashboard for visibility and day-to-day use.
           </p>
         </div>
         <div className="row">
           {featureList.map((props) => (
             <Feature key={props.title} {...props} />
           ))}
+        </div>
+        <div className={styles.note}>
+          Some capabilities described across the site reflect the broader
+          product direction and may continue to evolve as the platform grows.
         </div>
       </div>
     </section>
