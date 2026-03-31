@@ -1,46 +1,41 @@
 # Kairos Docs
 
-This repository contains only end-user documentation for Kairos.
+This repository contains the Open Kairos documentation website.
 
-The docs website is generated with Docusaurus and published to GitHub Pages with branch-based version paths.
+The site is generated with Docusaurus and published as one static site. Released documentation versions live side by side in this repository under `docs/<version>`.
 
-## Canonical URL contract
+## Public URL contract
 
-The repository targets this public URL model:
+- `/` serves the shared homepage
+- `/docs/1.x` serves the `1.x` documentation
+- future releases follow `/docs/<version>`
 
-- `/` serves the homepage from the current default branch.
-- `/docs` serves the documentation from the current default branch.
-- `/docs/next` serves the documentation published from `main`.
-- `/docs/<version>` serves the documentation published from a non-default release branch such as `1.x` or `2.x`.
+`/docs` is a version selector entry point, not the canonical route for the latest version. The current version is linked explicitly from the homepage and navbar.
 
-Only one branch owns `/` and `/docs` at a time: the current default branch.
+## Product structure
 
-The default branch is configured in `release-registry.json` on `gh-pages-control`.
+The documentation reflects the product boundary:
 
-## Version publishing model
+- `Kairos` is the core Customer Data Platform
+- `Aletheia` is the dashboard built on top of Kairos
 
-Only these branches are deployable:
+The docs are organized in a capability-first structure so they can scale over time, while still making the Kairos and Aletheia ownership boundary explicit on the page.
 
-- `main`
-- `*.x` such as `1.x`, `2.x`, or `3.x`
+## API reference model
 
-Published paths:
+The repository also publishes a generated API reference.
 
-- the current default branch -> `/` and `/docs`
-- `main` -> `/docs/next`
-- any non-default `*.x` branch -> `/docs/<version>`
-
-Branches outside this policy cannot be published.
-
-A version selector in the navbar preserves the current docs page when the target version contains it and otherwise falls back to the configured entry page.
+- The API reference is generated from `openapi/openapi.yaml` and `openapi/templates/**`.
+- The generated output is served through an iframe-based page in the Docusaurus site.
+- The primary editing surface for API docs is `openapi/**`, not `static/openapi/**`.
+- Each published docs version should align with the corresponding API reference version.
 
 ## Local development
 
 Requirements:
 
 - Node.js 24.x
-- npm
-- `.npmrc` enforces `engine-strict=true` (installation fails on non-24 Node runtimes)
+- npm 11.x
 
 Install dependencies:
 
@@ -53,18 +48,6 @@ Run the docs locally:
 ```bash
 npm run start
 ```
-
-Local development uses the checked out Git branch as both `DOCS_CURRENT_BRANCH` and `DOCS_DEFAULT_BRANCH`, so the current branch stays canonical locally and the docs are served at `/docs`.
-
-To simulate published routing from the centralized release registry, use publish simulation mode:
-
-```bash
-DOCS_RUNTIME_MODE=publish-simulation DOCS_DEFAULT_BRANCH=<current-default-branch> npm run start
-```
-
-That keeps the injected default branch canonical at `/docs`. For a non-default release branch such as `1.x`, publish simulation would serve the docs under `/docs/1.x`.
-
-Runtime helpers now require explicit `DOCS_CURRENT_BRANCH` and `DOCS_DEFAULT_BRANCH` inputs. Local Docusaurus bootstrapping derives them from the checked out Git branch for regular local development, while CI and deployment workflows pass them explicitly.
 
 Run docs with API template hot reload:
 
@@ -82,9 +65,11 @@ The watcher regenerates `static/openapi` whenever you edit:
 - `openapi/openapi.yaml`
 - `openapi/templates/kairos/**/*.mustache`
 
-The generated API docs now use `openapi/templates/kairos` as the canonical custom template directory.
+Build the generated API reference manually:
 
-So changes to API templates are reflected at `/api-docs` without manually re-running generation.
+```bash
+npm run build:api
+```
 
 Build static files:
 
@@ -104,33 +89,21 @@ Run validation:
 npm run validate
 ```
 
+## Version ownership
+
+- Narrative docs versions are owned by `docs/<version>`.
+- Published versions are declared in `versioned-docs/versions.js`.
+- Version navigation behavior is configured in `versioned-docs/navigation/<version>.js`.
+- Routing and multi-version registry behavior is defined in `versioned-docs/registry/registry.js`.
+- Git branch names do not define published docs ownership.
+
 ## GitHub Pages setup
 
-Set GitHub Pages source to the `gh-pages` branch root.
+Publish the site with the GitHub Pages workflow in `.github/workflows/publish-site.yml`.
 
-Docs publication is manual and controlled through bridge workflows on the current default branch.
+The deployment model is:
 
-The centralized registry and deploy scripts still live on `gh-pages-control`.
-The dispatchable workflows on the current default branch load `release-registry.json` and the deploy scripts from `gh-pages-control`, then publish with these ownership rules:
-
-- `/` and `/docs` from the current default branch
-- `/docs/next` from `main`
-- `/docs/<version>` from non-default release branches
-- `/docs/versions.json` for version navigation
-- `/docs/doc-paths.json` for context-preserving version switching
-
-When a branch is not the default branch, it publishes only its versioned docs subtree and does not overwrite the homepage.
-
-Current deployment state:
-
-- current default branch: `1.x`
-- current deployable branches: `1.x`
-
-Available operator workflows on the current default branch:
-
-- `🚀 Deploy Selected Docs Branch` publishes the selected workflow branch with no manual inputs
-- `🚀 Deploy All Deployable Docs Branches` republishes all deployable branches in registry order
-
-Internal orchestration details such as `registry_json` stay hidden from manual workflow runs.
-
-Missing deployable branches are skipped without failing a republish-all run.
+- one repository
+- one static site build
+- all released docs versions live side by side in that build
+- generated API reference is included in the same site build

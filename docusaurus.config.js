@@ -1,44 +1,16 @@
-const {resolveDocsRuntime} = require('./scripts/resolve-docs-runtime');
-const {resolveLocalDocsEnv} = require('./scripts/resolve-local-docs-env');
-const {versionFallbackDocPath} = require('./docs-site.config');
 const prismReact = require('prism-react-renderer');
-const {
-  buildCanonicalHomePath,
-  buildCurrentDocsContentPath,
-} = require('./scripts/build-canonical-site-paths');
+const createRegistryConfig = require('./versioned-docs/registry/registry');
 
-const runtimeEnv = {
-  ...process.env,
-  ...resolveLocalDocsEnv(process.env),
-};
-const {
-  versionSlug,
-  siteUrl,
-  baseUrl,
-  docsSiteBase,
-  docsRouteBasePath,
-  defaultBranch,
-  versions,
-} = resolveDocsRuntime(runtimeEnv);
-const homePath = buildCanonicalHomePath({docsSiteBase});
-const docsIntroPath = buildCurrentDocsContentPath({
-  baseUrl,
-  docsRouteBasePath,
-  docPath: 'intro',
-});
-const docsGettingStartedPath = buildCurrentDocsContentPath({
-  baseUrl,
-  docsRouteBasePath,
-  docPath: 'getting-started',
-});
+const siteUrl = process.env.SITE_URL ?? 'https://openkairos.github.io';
+const registryConfig = createRegistryConfig();
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Open Kairos',
-  tagline: 'Open Source CDP',
+  tagline: 'Open source CDP documentation',
   favicon: 'img/favicon.svg',
   url: siteUrl,
-  baseUrl,
+  baseUrl: '/',
   onBrokenLinks: 'throw',
   markdown: {
     hooks: {
@@ -49,15 +21,7 @@ const config = {
     defaultLocale: 'en',
     locales: ['en'],
   },
-  customFields: {
-    defaultBranch,
-    homePath,
-    siteUrl,
-    docsSiteBase,
-    docsIntroPath,
-    docsGettingStartedPath,
-    versionFallbackDocPath,
-  },
+  customFields: registryConfig.customFields,
   themeConfig: {
     colorMode: {
       defaultMode: 'light',
@@ -69,11 +33,11 @@ const config = {
       logo: {
         alt: 'Open Kairos Logo',
         src: 'img/favicon.svg',
-        href: homePath,
+        href: '/',
       },
       items: [
         {
-          to: docsIntroPath,
+          href: registryConfig.customFields.docsIntroPath,
           position: 'left',
           label: 'Documentation',
         },
@@ -84,9 +48,7 @@ const config = {
         },
         {
           type: 'custom-version-switcher',
-          currentVersion: versionSlug,
           position: 'right',
-          versions,
         },
         {
           href: 'https://github.com/openkairos',
@@ -102,7 +64,7 @@ const config = {
       logo: {
         alt: 'Kairos Logo',
         src: 'img/favicon.svg',
-        href: homePath,
+        href: '/',
         width: 32,
         height: 32,
       },
@@ -116,10 +78,7 @@ const config = {
     [
       'classic',
       {
-        docs: {
-          routeBasePath: docsRouteBasePath,
-          sidebarPath: require.resolve('./sidebars.js'),
-        },
+        docs: false,
         blog: false,
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -128,15 +87,18 @@ const config = {
     ],
   ],
   plugins: [
+    ...registryConfig.docsPlugins,
     [
       '@easyops-cn/docusaurus-search-local',
       {
         indexDocs: true,
         indexBlog: false,
         indexPages: true,
-        docsRouteBasePath: `/${docsRouteBasePath}`,
         hashed: true,
         language: ['en'],
+        docsRouteBasePath: registryConfig.search.docsRouteBasePath,
+        searchContextByPaths: registryConfig.search.searchContextByPaths,
+        hideSearchBarWithNoSearchContext: true,
       },
     ],
   ],
