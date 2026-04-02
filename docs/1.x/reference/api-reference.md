@@ -2,7 +2,8 @@
 title: API Reference
 ---
 
-The generated HTTP API reference is published separately in the site under `API Reference`.
+The generated HTTP API reference for this docs version is published at
+[API Reference](/docs/1.x/api-reference).
 
 Use the API reference when you need:
 

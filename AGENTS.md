@@ -36,11 +36,11 @@
 
 ## OpenAPI Reference Model
 
-- The API reference is generated from `openapi/openapi.yaml` and related templates.
-- The generated API reference is served through the iframe-based page at `src/pages/api-docs.jsx`.
+- The API reference is generated from versioned OpenAPI specs under `openapi/<version>.yaml` and related templates.
+- The generated API reference is served through versioned iframe-based pages under `/docs/<version>/api-reference`, with `src/pages/api-docs.jsx` kept as a compatibility redirect.
 - Generated output under `static/openapi/**` is a build artifact surface, not the primary authoring surface.
 - Source-of-truth edits for the API reference belong in:
-  - `openapi/openapi.yaml`
+  - `openapi/<version>.yaml`
   - `openapi/templates/**`
   - render-model inputs and generation scripts when needed
 - Do not treat generated HTML in `static/openapi/**` as the preferred place for manual edits.

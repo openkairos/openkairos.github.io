@@ -2,24 +2,20 @@ const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
 
-const ROOT = path.resolve(__dirname, '..');
-const SPEC_PATH = path.join(ROOT, 'openapi', 'openapi.yaml');
-const OUTPUT_PATH = path.join(ROOT, 'static', 'openapi', 'render-model.json');
+const ROOT = path.resolve(__dirname, '..', '..');
 const DOWNLOAD_FILE_NAME = 'kairos.openapi.yaml';
-const SOURCE_OUTPUT_PATH = path.join(ROOT, 'static', 'openapi', DOWNLOAD_FILE_NAME);
-
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace'];
 
-function readSpec() {
-  return yaml.load(fs.readFileSync(SPEC_PATH, 'utf8'));
+function readSpec(specPath) {
+  return yaml.load(fs.readFileSync(specPath, 'utf8'), undefined);
 }
 
-function readSpecSource() {
-  return fs.readFileSync(SPEC_PATH, 'utf8');
+function readSpecSource(specPath) {
+  return fs.readFileSync(specPath, 'utf8');
 }
 
-function ensureOutputDir() {
-  fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
+function ensureOutputDir(outputDir) {
+  fs.mkdirSync(outputDir, {recursive: true});
 }
 
 function getByRef(spec, ref) {
@@ -30,7 +26,11 @@ function getByRef(spec, ref) {
   return ref
     .slice(2)
     .split('/')
-    .reduce((acc, key) => (acc && Object.prototype.hasOwnProperty.call(acc, key) ? acc[key] : null), spec);
+    .reduce(
+      (acc, key) =>
+        acc && Object.prototype.hasOwnProperty.call(acc, key) ? acc[key] : null,
+      spec,
+    );
 }
 
 function clone(value) {
@@ -44,6 +44,7 @@ function dereference(spec, value) {
 
   if (value.$ref) {
     const resolved = getByRef(spec, value.$ref);
+
     return resolved ? dereference(spec, resolved) : value;
   }
 
@@ -85,7 +86,7 @@ function normalizeExamples(examples, example) {
 
 function normalizeSchema(spec, schemaOrRef) {
   if (!schemaOrRef) {
-    return { schemaRef: null, schema: null };
+    return {schemaRef: null, schema: null};
   }
 
   if (schemaOrRef.$ref) {
@@ -111,11 +112,13 @@ function normalizeParameters(spec, parameters) {
 
   (parameters || []).forEach((parameter) => {
     const resolved = dereference(spec, parameter);
+
     if (!resolved || !resolved.in || !groups[resolved.in]) {
       return;
     }
 
     const schemaInfo = normalizeSchema(spec, resolved.schema || null);
+
     groups[resolved.in].push({
       id: `${resolved.in}:${resolved.name}`,
       name: resolved.name,
@@ -137,6 +140,7 @@ function normalizeParameters(spec, parameters) {
 function normalizeContent(spec, content) {
   return Object.entries(content || {}).map(([mediaType, media]) => {
     const schemaInfo = normalizeSchema(spec, media.schema || null);
+
     return {
       mediaType,
       schemaRef: schemaInfo.schemaRef,
@@ -153,6 +157,7 @@ function normalizeRequestBody(spec, requestBody) {
   }
 
   const resolved = dereference(spec, requestBody);
+
   return {
     required: Boolean(resolved.required),
     description: resolved.description || null,
@@ -164,6 +169,7 @@ function normalizeHeaders(spec, headers) {
   return Object.entries(headers || {}).map(([name, header]) => {
     const resolved = dereference(spec, header);
     const schemaInfo = normalizeSchema(spec, resolved.schema || null);
+
     return {
       name,
       description: resolved.description || null,
@@ -178,6 +184,7 @@ function normalizeHeaders(spec, headers) {
 function normalizeLinks(spec, links) {
   return Object.entries(links || {}).map(([id, link]) => {
     const resolved = dereference(spec, link);
+
     return {
       id,
       operationId: resolved.operationId || null,
@@ -193,6 +200,7 @@ function normalizeLinks(spec, links) {
 function normalizeResponses(spec, responses) {
   return Object.entries(responses || {}).map(([statusCode, response]) => {
     const resolved = dereference(spec, response);
+
     return {
       statusCode,
       description: resolved.description || null,
@@ -206,21 +214,27 @@ function normalizeResponses(spec, responses) {
 function normalizeCallbacks(spec, callbacks) {
   return Object.entries(callbacks || {}).map(([id, callback]) => {
     const resolvedCallback = dereference(spec, callback);
+
     return {
       id,
-      expressions: Object.entries(resolvedCallback || {}).map(([expression, pathItem]) => ({
-        expression,
-        operations: HTTP_METHODS.filter((method) => pathItem && pathItem[method]).map((method) => {
-          const operation = pathItem[method];
-          return {
-            method,
-            summary: operation.summary || null,
-            description: operation.description || null,
-            requestBody: normalizeRequestBody(spec, operation.requestBody),
-            responses: normalizeResponses(spec, operation.responses),
-          };
+      expressions: Object.entries(resolvedCallback || {}).map(
+        ([expression, pathItem]) => ({
+          expression,
+          operations: HTTP_METHODS.filter(
+            (method) => pathItem && pathItem[method],
+          ).map((method) => {
+            const operation = pathItem[method];
+
+            return {
+              method,
+              summary: operation.summary || null,
+              description: operation.description || null,
+              requestBody: normalizeRequestBody(spec, operation.requestBody),
+              responses: normalizeResponses(spec, operation.responses),
+            };
+          }),
         }),
-      })),
+      ),
     };
   });
 }
@@ -234,16 +248,22 @@ function normalizeSecurityRequirements(security) {
 
 function normalizeServers(servers) {
   return (servers || []).map((server, index) => {
-    const variables = Object.entries(server.variables || {}).map(([name, variable]) => ({
-      name,
-      description: variable.description || null,
-      defaultValue: variable.default,
-      enumValues: variable.enum || [],
-    }));
+    const variables = Object.entries(server.variables || {}).map(
+      ([name, variable]) => ({
+        name,
+        description: variable.description || null,
+        defaultValue: variable.default,
+        enumValues: variable.enum || [],
+      }),
+    );
 
     const defaultResolvedUrl = variables.reduce(
-      (value, variable) => value.replace(new RegExp(`\\{${variable.name}\\}`, 'g'), String(variable.defaultValue)),
-      server.url
+      (value, variable) =>
+        value.replace(
+          new RegExp(`\\{${variable.name}\\}`, 'g'),
+          String(variable.defaultValue),
+        ),
+      server.url,
     );
 
     return {
@@ -273,11 +293,11 @@ function normalizeAuth(spec) {
     };
 
     if (scheme.type === 'http') {
-      entry.location = { kind: 'header', name: 'Authorization' };
+      entry.location = {kind: 'header', name: 'Authorization'};
     }
 
     if (scheme.type === 'apiKey') {
-      entry.location = { kind: scheme.in, name: scheme.name };
+      entry.location = {kind: scheme.in, name: scheme.name};
     }
 
     if (scheme.type === 'oauth2') {
@@ -297,7 +317,10 @@ function normalizeAuth(spec) {
     return entry;
   });
 
-  const defaultSchemeId = spec.security && spec.security.length ? Object.keys(spec.security[0])[0] : schemes[0]?.id || null;
+  const defaultSchemeId =
+    spec.security && spec.security.length
+      ? Object.keys(spec.security[0])[0]
+      : schemes[0]?.id || null;
 
   return {
     schemes,
@@ -309,18 +332,23 @@ function schemeDisplayName(id, scheme) {
   if (scheme.type === 'http' && scheme.scheme === 'bearer') {
     return 'Bearer Authentication';
   }
+
   if (scheme.type === 'http' && scheme.scheme === 'basic') {
     return 'Basic Authentication';
   }
+
   if (scheme.type === 'apiKey') {
     return 'API Key Authentication';
   }
+
   if (scheme.type === 'oauth2') {
     return 'OAuth 2.0';
   }
+
   if (scheme.type === 'openIdConnect') {
     return 'OpenID Connect';
   }
+
   return id;
 }
 
@@ -349,6 +377,7 @@ function normalizeTags(spec, operations) {
 
 function normalizeOperation(spec, pathKey, method, pathItem, operation) {
   const mergedParameters = [...(pathItem.parameters || []), ...(operation.parameters || [])];
+
   return {
     id: operation.operationId || `${method}:${pathKey}`,
     kind: 'path',
@@ -366,7 +395,7 @@ function normalizeOperation(spec, pathKey, method, pathItem, operation) {
       : null,
     servers: normalizeServers(operation.servers || []),
     security: normalizeSecurityRequirements(
-      operation.security !== undefined ? operation.security : spec.security
+      operation.security !== undefined ? operation.security : spec.security,
     ),
     parameters: normalizeParameters(spec, mergedParameters),
     requestBody: normalizeRequestBody(spec, operation.requestBody),
@@ -386,13 +415,14 @@ function normalizeOperationRequestExamples(spec, operation) {
   }
 
   const requestBody = normalizeRequestBody(spec, operation.requestBody);
+
   return requestBody.content.flatMap((content) =>
     content.examples.map((example) => ({
       mediaType: content.mediaType,
       id: example.id,
       summary: example.summary,
       value: example.value,
-    }))
+    })),
   );
 }
 
@@ -405,16 +435,16 @@ function normalizeOperationResponseExamples(spec, responses) {
         id: example.id,
         summary: example.summary,
         value: example.value,
-      }))
-    )
+      })),
+    ),
   );
 }
 
 function normalizeOperations(spec) {
   return Object.entries(spec.paths || {}).flatMap(([pathKey, pathItem]) =>
     HTTP_METHODS.filter((method) => pathItem && pathItem[method]).map((method) =>
-      normalizeOperation(spec, pathKey, method, pathItem, pathItem[method])
-    )
+      normalizeOperation(spec, pathKey, method, pathItem, pathItem[method]),
+    ),
   );
 }
 
@@ -422,6 +452,7 @@ function normalizeWebhooks(spec) {
   return Object.entries(spec.webhooks || {}).flatMap(([name, pathItem]) =>
     HTTP_METHODS.filter((method) => pathItem && pathItem[method]).map((method) => {
       const operation = pathItem[method];
+
       return {
         id: operation.operationId || `${name}:${method}`,
         kind: 'webhook',
@@ -433,7 +464,7 @@ function normalizeWebhooks(spec) {
         requestBody: normalizeRequestBody(spec, operation.requestBody),
         responses: normalizeResponses(spec, operation.responses),
       };
-    })
+    }),
   );
 }
 
@@ -451,7 +482,7 @@ function normalizeComponentGroup(spec, groupName, kind) {
   }));
 }
 
-function buildRenderModel(spec) {
+function buildRenderModel(spec, specPath) {
   const operations = normalizeOperations(spec);
 
   return {
@@ -485,21 +516,29 @@ function buildRenderModel(spec) {
       fileName: DOWNLOAD_FILE_NAME,
       sourceFormat: 'yaml',
       bundleStrategy: 'static-single-file',
-      entrypoint: 'openapi/openapi.yaml',
+      entrypoint: path.relative(ROOT, specPath).replace(/\\/gu, '/'),
       assetPath: DOWNLOAD_FILE_NAME,
     },
   };
 }
 
-function main() {
-  const specSource = readSpecSource();
-  const spec = readSpec();
-  const model = buildRenderModel(spec);
-  ensureOutputDir();
-  fs.writeFileSync(OUTPUT_PATH, `${JSON.stringify(model, null, 2)}\n`, 'utf8');
-  fs.writeFileSync(SOURCE_OUTPUT_PATH, specSource.endsWith('\n') ? specSource : `${specSource}\n`, 'utf8');
-  console.log(`Wrote ${path.relative(ROOT, OUTPUT_PATH)}`);
-  console.log(`Wrote ${path.relative(ROOT, SOURCE_OUTPUT_PATH)}`);
+function writeRenderModel({specPath, outputDir}) {
+  const specSource = readSpecSource(specPath);
+  const spec = readSpec(specPath);
+  const model = buildRenderModel(spec, specPath);
+  const outputPath = path.join(outputDir, 'render-model.json');
+  const sourceOutputPath = path.join(outputDir, DOWNLOAD_FILE_NAME);
+
+  ensureOutputDir(outputDir);
+  fs.writeFileSync(outputPath, `${JSON.stringify(model, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(
+    sourceOutputPath,
+    specSource.endsWith('\n') ? specSource : `${specSource}\n`,
+    'utf8',
+  );
 }
 
-main();
+module.exports = {
+  DOWNLOAD_FILE_NAME,
+  writeRenderModel,
+};

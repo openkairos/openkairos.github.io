@@ -7,12 +7,11 @@
     "start": "docusaurus start --host 0.0.0.0 --port 3000",
     "dev": "concurrently -k \"npm:watch:api\" \"npm:start\"",
     "build": "docusaurus build",
-    "build:render-model": "node scripts/build-render-model.js",
-    "build:api": "npm run build:render-model && openapi-generator-cli generate",
-    "watch:api": "chokidar \"openapi/openapi.yaml\" \"openapi/templates/**/*.mustache\" -c \"npm run build:api\" --initial",
+    "build:api": "node openapi/scripts/build-versioned-api.js",
+    "watch:api": "chokidar \"openapi/*.yaml\" \"openapi/templates/**/*.mustache\" \"openapi/scripts/**/*.js\" -c \"npm run build:api\" --initial",
     "serve": "docusaurus serve",
     "clear": "docusaurus clear",
-    "test": "node --test \"versioned-docs/**/*.test.js\"",
+    "test": "node --test \"versioned-docs/**/*.test.js\" \"versioned-pages/**/*.test.js\" \"openapi/scripts/**/*.test.js\"",
     "lint": "markdownlint \"README.md\" \"docs/**/*.md\"",
     "validate": "npm run lint && npm run test && npm run build"
   },
@@ -21,6 +20,7 @@
     "@docusaurus/preset-classic": "^3.9.2",
     "@easyops-cn/docusaurus-search-local": "^0.55.1",
     "clsx": "^2.1.1",
+    "js-yaml": "^4.1.1",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"

@@ -6,6 +6,9 @@ const trimSlashes = (value) => value.replace(/^\/+|\/+$/g, '');
 const buildDocsContentPath = ({version, docPath}) =>
   `/${trimSlashes(version.routeBasePath)}/${trimSlashes(docPath)}`;
 
+const buildVersionedPagePath = ({version, pageSlug}) =>
+  `/${trimSlashes(version.routeBasePath)}/${trimSlashes(pageSlug)}`;
+
 const parseCurrentVersion = ({currentPathname, versions, latestVersion}) => {
   const normalizedPath = trimSlashes(currentPathname);
   const matchedVersion = versions.find(({routeBasePath}) =>
@@ -30,12 +33,43 @@ const parseCurrentDocPath = ({currentPathname, currentVersion}) => {
   return trimSlashes(normalizedPath.slice(normalizedRouteBasePath.length)) || null;
 };
 
+const parseCurrentVersionedPage = ({
+  currentPathname,
+  currentVersion,
+  versionedPages,
+}) => {
+  const currentDocPath = parseCurrentDocPath({
+    currentPathname,
+    currentVersion,
+  });
+
+  if (!currentDocPath) {
+    return null;
+  }
+
+  return versionedPages.find(({slug}) => slug === currentDocPath) ?? null;
+};
+
 const resolveVersionSwitchTarget = ({
   availableDocPathsByVersion,
   currentPathname,
   currentVersion,
   targetVersion,
+  versionedPages,
 }) => {
+  const currentVersionedPage = parseCurrentVersionedPage({
+    currentPathname,
+    currentVersion,
+    versionedPages,
+  });
+
+  if (currentVersionedPage) {
+    return buildVersionedPagePath({
+      version: targetVersion,
+      pageSlug: currentVersionedPage.slug,
+    });
+  }
+
   const currentDocPath = parseCurrentDocPath({
     currentPathname,
     currentVersion,
@@ -55,7 +89,8 @@ const resolveVersionSwitchTarget = ({
 export const useVersionSwitchTargets = () => {
   const {pathname} = useLocation();
   const {siteConfig} = useDocusaurusContext();
-  const {versions, latestVersion, docPathManifest} = siteConfig.customFields;
+  const {versions, latestVersion, docPathManifest, versionedPages} =
+    siteConfig.customFields;
   const currentVersion = parseCurrentVersion({
     currentPathname: pathname,
     versions,
@@ -70,6 +105,7 @@ export const useVersionSwitchTargets = () => {
         currentPathname: pathname,
         currentVersion,
         targetVersion: version,
+        versionedPages,
       }),
       label: version.label,
     })),
