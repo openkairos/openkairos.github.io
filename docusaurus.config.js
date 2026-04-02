@@ -1,8 +1,10 @@
 const prismReact = require('prism-react-renderer');
 const createRegistryConfig = require('./versioned-docs/registry/registry');
+const {createVersionedPagesConfig} = require('./versioned-pages');
 
 const siteUrl = process.env.SITE_URL ?? 'https://openkairos.github.io';
 const registryConfig = createRegistryConfig();
+const versionedPagesConfig = createVersionedPagesConfig();
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -21,7 +23,10 @@ const config = {
     defaultLocale: 'en',
     locales: ['en'],
   },
-  customFields: registryConfig.customFields,
+  customFields: {
+    ...registryConfig.customFields,
+    ...versionedPagesConfig.customFields,
+  },
   themeConfig: {
     colorMode: {
       defaultMode: 'light',
@@ -42,9 +47,8 @@ const config = {
           label: 'Documentation',
         },
         {
-          to: '/api-docs',
-          position: 'right',
-          label: 'API Reference',
+          type: 'custom-api-reference-link',
+          position: 'left',
         },
         {
           type: 'custom-version-switcher',
@@ -88,6 +92,7 @@ const config = {
   ],
   plugins: [
     ...registryConfig.docsPlugins,
+    require.resolve('./plugins/versioned-pages'),
     [
       '@easyops-cn/docusaurus-search-local',
       {

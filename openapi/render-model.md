@@ -351,7 +351,7 @@ Metadata required to produce a client-side single-file YAML download.
   "fileName": "dummyjson-testing.openapi.yaml",
   "sourceFormat": "yaml",
   "bundleStrategy": "static-single-file",
-  "entrypoint": "openapi/openapi.yaml",
+  "entrypoint": "openapi/1.x.yaml",
   "assetPath": "dummyjson-testing.openapi.yaml"
 }
 ```

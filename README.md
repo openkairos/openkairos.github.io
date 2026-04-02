@@ -25,7 +25,7 @@ The docs are organized in a capability-first structure so they can scale over ti
 
 The repository also publishes a generated API reference.
 
-- The API reference is generated from `openapi/openapi.yaml` and `openapi/templates/**`.
+- The API reference is generated from `openapi/<version>.yaml` and `openapi/templates/**`.
 - The generated output is served through an iframe-based page in the Docusaurus site.
 - The primary editing surface for API docs is `openapi/**`, not `static/openapi/**`.
 - Each published docs version should align with the corresponding API reference version.
@@ -60,9 +60,9 @@ This runs:
 - Docusaurus dev server (`npm run start`)
 - OpenAPI generator watcher (`npm run watch:api`)
 
-The watcher regenerates `static/openapi` whenever you edit:
+The watcher regenerates `static/openapi/<version>` whenever you edit:
 
-- `openapi/openapi.yaml`
+- `openapi/*.yaml`
 - `openapi/templates/kairos/**/*.mustache`
 
 Build the generated API reference manually:
