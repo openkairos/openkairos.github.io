@@ -48,6 +48,8 @@ services:
     depends_on:
       kairos:
         condition: service_healthy
+    environment:
+      - KAIROS_BASE_URL=http://kairos:3000
     networks:
       - kairos_network
 
